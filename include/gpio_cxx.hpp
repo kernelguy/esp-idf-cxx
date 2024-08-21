@@ -292,14 +292,14 @@ public:
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void set_high();
+    void set_high() const;
 
     /**
      * @brief Set GPIO to low level.
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void set_low();
+    void set_low() const;
 
     using GPIOBase::set_drive_strength;
     using GPIOBase::get_drive_strength;
@@ -322,10 +322,10 @@ public:
 
     /**
      * @brief Constructs and fully configure a GPIO as input
-     * 
+     *
      * @param num GPIO pin number of the GPIO to be configured.
      * @param mode The pull mode to configure on the GPIO
-     * @param strength The internal pull resistor strength to setup on the GPIO 
+     * @param strength The internal pull resistor strength to setup on the GPIO
      */
     GPIOInput(const GPIONum num, const GPIOPullMode mode, const GPIODriveStrength strength);
 
@@ -343,21 +343,21 @@ public:
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void set_pull_mode(GPIOPullMode mode);
+    void set_pull_mode(GPIOPullMode mode) const;
 
     /**
      * @brief Configure the pin as wake up pin.
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void wakeup_enable(GPIOWakeupIntrType interrupt_type);
+    void wakeup_enable(GPIOWakeupIntrType interrupt_type) const;
 
     /**
      * @brief Disable wake up functionality for this pin if it was enabled before.
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void wakeup_disable();
+    void wakeup_disable() const;
 
     using GPIOBase::set_drive_strength;
     using GPIOBase::get_drive_strength;
@@ -387,14 +387,14 @@ public:
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void set_floating();
+    void set_floating() const;
 
     /**
      * @brief Set GPIO to low level.
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void set_low();
+    void set_low() const;
 
     using GPIOBase::set_drive_strength;
     using GPIOBase::get_drive_strength;
