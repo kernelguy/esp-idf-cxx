@@ -21,6 +21,8 @@ GPATH
 # MacOS directory files
 .DS_Store
 
+build-debug
+
 # Example Apps files
 examples/**/build
 examples/**/sdkconfig
