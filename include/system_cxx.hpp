@@ -29,7 +29,7 @@
 template<typename ValueT>
 class StrongValue {
 protected:
-    constexpr StrongValue(ValueT value_arg) : value(value_arg) { }
+    constexpr explicit StrongValue(ValueT value_arg) : value(value_arg) { }
 
     template<typename RawType = ValueT>
     RawType get_value() const {
@@ -46,7 +46,7 @@ private:
 template<typename ValueT>
 class StrongValueComparable : public StrongValue<ValueT> {
 protected:
-    constexpr StrongValueComparable(ValueT value_arg) : StrongValue<ValueT>(value_arg) { }
+    constexpr explicit StrongValueComparable(ValueT value_arg) : StrongValue<ValueT>(value_arg) { }
 
 public:
     using StrongValue<ValueT>::get_value;
@@ -70,7 +70,7 @@ namespace idf {
 template<typename ValueT>
 class StrongValueOrdered : public StrongValueComparable<ValueT> {
 public:
-    StrongValueOrdered(ValueT value) : StrongValueComparable<ValueT>(value) { }
+    explicit StrongValueOrdered(ValueT value) : StrongValueComparable<ValueT>(value) { }
 
     using StrongValueComparable<ValueT>::get_value;
 
@@ -96,7 +96,7 @@ public:
 };
 
 /**
- * A general frequency class to be used whereever an unbound frequency value is necessary.
+ * A general frequency class to be used where ever an unbound frequency value is necessary.
  */
 class Frequency : public StrongValueOrdered<size_t> {
 public:
@@ -135,7 +135,7 @@ class QueueSize {
 public:
     explicit QueueSize(size_t q_size) : queue_size(q_size) { }
 
-    size_t get_size()
+    [[nodiscard]] size_t get_size() const
     {
         return queue_size;
     }

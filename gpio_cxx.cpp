@@ -62,6 +62,15 @@ esp_err_t check_gpio_drive_strength(uint32_t strength) noexcept
     return ESP_OK;
 }
 
+esp_err_t check_gpio_mode(uint32_t mode) noexcept
+{
+    if ((mode & ~GPIO_MODE_INPUT_OUTPUT_OD) != 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    return ESP_OK;
+}
+
 GPIOPullMode GPIOPullMode::FLOATING()
 {
     return GPIOPullMode(GPIO_FLOATING);
@@ -77,14 +86,34 @@ GPIOPullMode GPIOPullMode::PULLDOWN()
     return GPIOPullMode(GPIO_PULLDOWN_ONLY);
 }
 
-GPIOWakeupIntrType GPIOWakeupIntrType::LOW_LEVEL()
+GPIOInterruptType GPIOInterruptType::DISABLE()
 {
-    return GPIOWakeupIntrType(GPIO_INTR_LOW_LEVEL);
+    return GPIOInterruptType(GPIO_INTR_DISABLE);
 }
 
-GPIOWakeupIntrType GPIOWakeupIntrType::HIGH_LEVEL()
+GPIOInterruptType GPIOInterruptType::POSITIVE_EDGE()
 {
-    return GPIOWakeupIntrType(GPIO_INTR_HIGH_LEVEL);
+    return GPIOInterruptType(GPIO_INTR_POSEDGE);
+}
+
+GPIOInterruptType GPIOInterruptType::NEGATIVE_EDGE()
+{
+    return GPIOInterruptType(GPIO_INTR_NEGEDGE);
+}
+
+GPIOInterruptType GPIOInterruptType::ANY_EDGE()
+{
+    return GPIOInterruptType(GPIO_INTR_ANYEDGE);
+}
+
+GPIOInterruptType GPIOInterruptType::LOW_LEVEL()
+{
+    return GPIOInterruptType(GPIO_INTR_LOW_LEVEL);
+}
+
+GPIOInterruptType GPIOInterruptType::HIGH_LEVEL()
+{
+    return GPIOInterruptType(GPIO_INTR_HIGH_LEVEL);
 }
 
 GPIODriveStrength GPIODriveStrength::DEFAULT()
@@ -112,9 +141,48 @@ GPIODriveStrength GPIODriveStrength::STRONGEST()
     return GPIODriveStrength(GPIO_DRIVE_CAP_3);
 }
 
-GPIOBase::GPIOBase(GPIONum num) : gpio_num(num)
+GPIOModeType GPIOModeType::DISABLE()
+{
+    return GPIOModeType(GPIO_MODE_DISABLE);
+}
+
+GPIOModeType GPIOModeType::INPUT()
+{
+    return GPIOModeType(GPIO_MODE_INPUT);
+}
+
+GPIOModeType GPIOModeType::OUTPUT()
+{
+    return GPIOModeType(GPIO_MODE_OUTPUT);
+}
+
+GPIOModeType GPIOModeType::OUTPUT_OPEN_DRAIN()
+{
+    return GPIOModeType(GPIO_MODE_OUTPUT_OD);
+}
+
+GPIOModeType GPIOModeType::INPUT_OUTPUT_OPEN_DRAIN()
+{
+    return GPIOModeType(GPIO_MODE_INPUT_OUTPUT_OD);
+}
+
+GPIOModeType GPIOModeType::INPUT_OUTPUT()
+{
+    return GPIOModeType(GPIO_MODE_INPUT_OUTPUT);
+}
+
+GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode)
+    : gpio_num(num)
 {
     GPIO_CHECK_THROW(gpio_reset_pin(gpio_num.get_value<gpio_num_t>()));
+    GPIO_CHECK_THROW(gpio_set_direction(gpio_num.get_value<gpio_num_t>(), mode.get_value<gpio_mode_t>()));
+}
+
+GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength)
+    : GPIOBase(num, mode)
+{
+    set_pull_mode(pull);
+    set_drive_strength(strength);
 }
 
 void GPIOBase::hold_en()
@@ -127,25 +195,46 @@ void GPIOBase::hold_dis()
     GPIO_CHECK_THROW(gpio_hold_dis(gpio_num.get_value<gpio_num_t>()));
 }
 
-void GPIOBase::set_drive_strength(GPIODriveStrength strength)
-{
-    GPIO_CHECK_THROW(gpio_set_drive_capability(gpio_num.get_value<gpio_num_t>(),
-                                               strength.get_value<gpio_drive_cap_t>()));
-}
-
-GPIO_Output::GPIO_Output(GPIONum num) : GPIOBase(num)
-{
-    GPIO_CHECK_THROW(gpio_set_direction(gpio_num.get_value<gpio_num_t>(), GPIO_MODE_OUTPUT));
-}
-
-void GPIO_Output::set_high() const
+void GPIOBase::set_high() const
 {
     GPIO_CHECK_THROW(gpio_set_level(gpio_num.get_value<gpio_num_t>(), 1));
 }
 
-void GPIO_Output::set_low() const
+void GPIOBase::set_low() const
 {
     GPIO_CHECK_THROW(gpio_set_level(gpio_num.get_value<gpio_num_t>(), 0));
+}
+
+void GPIOBase::set_floating() const
+{
+    set_high();
+}
+
+void GPIOBase::set_pull_mode(GPIOPullMode mode) const
+{
+    GPIO_CHECK_THROW(gpio_set_pull_mode(gpio_num.get_value<gpio_num_t>(),
+                                        mode.get_value<gpio_pull_mode_t>()));
+}
+
+GPIOLevel GPIOBase::get_level() const noexcept
+{
+    if (bool(*this)) {
+        return GPIOLevel::HIGH;
+    } else {
+        return GPIOLevel::LOW;
+    }
+}
+
+GPIOBase::operator bool() const
+{
+    int level = gpio_get_level(gpio_num.get_value<gpio_num_t>());
+    return (level != 0);
+}
+
+void GPIOBase::set_drive_strength(GPIODriveStrength strength)
+{
+    GPIO_CHECK_THROW(gpio_set_drive_capability(gpio_num.get_value<gpio_num_t>(),
+                                               strength.get_value<gpio_drive_cap_t>()));
 }
 
 GPIODriveStrength GPIOBase::get_drive_strength()
@@ -155,32 +244,14 @@ GPIODriveStrength GPIOBase::get_drive_strength()
     return GPIODriveStrength(static_cast<uint32_t>(strength));
 }
 
-GPIOInput::GPIOInput(GPIONum num) : GPIOBase(num)
+GPIO_Output::GPIO_Output(GPIONum num)
+    : GPIOBase(num, GPIOModeType::OUTPUT())
 {
-    GPIO_CHECK_THROW(gpio_set_direction(gpio_num.get_value<gpio_num_t>(), GPIO_MODE_INPUT));
 }
 
-GPIOInput::GPIOInput(const GPIONum num, const GPIOPullMode mode, const GPIODriveStrength strength)
-    : GPIOInput(num)
+GPIOInput::GPIOInput(GPIONum num)
+        : GPIOBase(num, GPIOModeType::INPUT())
 {
-    set_pull_mode(mode);
-    set_drive_strength(strength);
-}
-
-GPIOLevel GPIOInput::get_level() const noexcept
-{
-    int level = gpio_get_level(gpio_num.get_value<gpio_num_t>());
-    if (level) {
-        return GPIOLevel::HIGH;
-    } else {
-        return GPIOLevel::LOW;
-    }
-}
-
-void GPIOInput::set_pull_mode(GPIOPullMode mode) const
-{
-    GPIO_CHECK_THROW(gpio_set_pull_mode(gpio_num.get_value<gpio_num_t>(),
-                                        mode.get_value<gpio_pull_mode_t>()));
 }
 
 void GPIOInput::wakeup_enable(GPIOWakeupIntrType interrupt_type) const
@@ -194,19 +265,9 @@ void GPIOInput::wakeup_disable() const
     GPIO_CHECK_THROW(gpio_wakeup_disable(gpio_num.get_value<gpio_num_t>()));
 }
 
-GPIO_OpenDrain::GPIO_OpenDrain(GPIONum num) : GPIOInput(num)
+GPIO_OpenDrain::GPIO_OpenDrain(GPIONum num)
+    : GPIOInput(num, GPIOModeType::INPUT_OUTPUT_OPEN_DRAIN())
 {
-    GPIO_CHECK_THROW(gpio_set_direction(gpio_num.get_value<gpio_num_t>(), GPIO_MODE_INPUT_OUTPUT_OD));
-}
-
-void GPIO_OpenDrain::set_floating() const
-{
-    GPIO_CHECK_THROW(gpio_set_level(gpio_num.get_value<gpio_num_t>(), 1));
-}
-
-void GPIO_OpenDrain::set_low() const
-{
-    GPIO_CHECK_THROW(gpio_set_level(gpio_num.get_value<gpio_num_t>(), 0));
 }
 
 }

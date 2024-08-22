@@ -22,7 +22,7 @@ struct GPIOException : public ESPException {
     /**
      * @param error The IDF error representing the error class of the error to throw.
      */
-    GPIOException(esp_err_t error);
+    explicit GPIOException(esp_err_t error);
 };
 
 /**
@@ -63,7 +63,7 @@ public:
     /**
      * Retrieves the valid numerical representation of the GPIO number.
      */
-    uint32_t get_num() const { return get_value(); };
+    [[nodiscard]] uint32_t get_num() const { return get_value(); };
 };
 
 /**
@@ -94,7 +94,7 @@ private:
     /**
      * Constructor is private since it should only be accessed by the static creation methods.
      *
-     * @param pull_mode A valid numerical respresentation of the pull up configuration. Must be valid!
+     * @param pull_mode A valid numerical representation of the pull up configuration. Must be valid!
      */
     explicit GPIOPullMode(uint32_t pull_mode) : StrongValueComparable<uint32_t>(pull_mode) { }
 
@@ -106,13 +106,13 @@ public:
     static GPIOPullMode FLOATING();
 
     /**
-     * Create a representation of a pullup configuration.
+     * Create a representation of a pull-up configuration.
      * For more information, check the driver and HAL files.
      */
     static GPIOPullMode PULLUP();
 
     /**
-     * Create a representation of a pulldown configuration.
+     * Create a representation of a pull-down configuration.
      * For more information, check the driver and HAL files.
      */
     static GPIOPullMode PULLDOWN();
@@ -122,24 +122,46 @@ public:
 };
 
 /**
- * @brief Represents a valid wakup interrupt type for GPIO inputs.
+ * @brief Represents a valid interrupt type for GPIO inputs.
  *
  * This class is a "Strong Value Type", see also the template class \c StrongValue for more properties.
  * It is supposed to resemble an enum type, hence it has static creation methods and a private constructor.
  * For a detailed mapping of interrupt types to numeric values, please refer to the driver types and implementation.
  */
-class GPIOWakeupIntrType final: public StrongValueComparable<uint32_t> {
+class GPIOInterruptType : public StrongValueComparable<uint32_t> {
 private:
     /**
      * Constructor is private since it should only be accessed by the static creation methods.
      *
-     * @param pull_mode A valid numerical respresentation of a possible interrupt level to wake up. Must be valid!
+     * @param interrupt_level A valid numerical representation of a possible interrupt type. Must be valid!
      */
-    explicit GPIOWakeupIntrType(uint32_t interrupt_level) : StrongValueComparable<uint32_t>(interrupt_level) { }
-
+    explicit GPIOInterruptType(uint32_t interrupt_level) : StrongValueComparable<uint32_t>(interrupt_level) { }
 public:
-    static GPIOWakeupIntrType LOW_LEVEL();
-    static GPIOWakeupIntrType HIGH_LEVEL();
+    static GPIOInterruptType DISABLE();
+    static GPIOInterruptType POSITIVE_EDGE();
+    static GPIOInterruptType NEGATIVE_EDGE();
+    static GPIOInterruptType ANY_EDGE();
+    static GPIOInterruptType LOW_LEVEL();
+    static GPIOInterruptType HIGH_LEVEL();
+};
+
+/**
+ * @brief Represents a valid wakeup interrupt type for GPIO inputs.
+ *
+ * This class is a "Strong Value Type", see also the template class \c StrongValue for more properties.
+ * It is supposed to resemble an enum type, hence it has static creation methods and a private constructor.
+ * For a detailed mapping of interrupt types to numeric values, please refer to the driver types and implementation.
+ */
+class GPIOWakeupIntrType final: public GPIOInterruptType {
+private:
+    explicit GPIOWakeupIntrType(GPIOInterruptType type) : GPIOInterruptType(type) {}
+    using GPIOInterruptType::DISABLE;
+    using GPIOInterruptType::POSITIVE_EDGE;
+    using GPIOInterruptType::NEGATIVE_EDGE;
+    using GPIOInterruptType::ANY_EDGE;
+public:
+    static GPIOWakeupIntrType LOW_LEVEL() { return GPIOWakeupIntrType(GPIOInterruptType::LOW_LEVEL()); }
+    static GPIOWakeupIntrType HIGH_LEVEL() { return GPIOWakeupIntrType(GPIOInterruptType::HIGH_LEVEL()); };
 };
 
 /**
@@ -204,12 +226,25 @@ public:
     using StrongValueComparable<uint32_t>::operator!=;
 };
 
+class GPIOModeType final : public StrongValueComparable<uint32_t> {
+private:
+    explicit GPIOModeType(uint32_t mode) : StrongValueComparable<uint32_t>(mode) {}
+public:
+    static GPIOModeType DISABLE();
+    static GPIOModeType INPUT();
+    static GPIOModeType OUTPUT();
+    static GPIOModeType OUTPUT_OPEN_DRAIN();
+    static GPIOModeType INPUT_OUTPUT_OPEN_DRAIN();
+    static GPIOModeType INPUT_OUTPUT();
+};
+
+
 /**
  * @brief Implementations commonly used functionality for all GPIO configurations.
  *
  * Some functionality is only for specific configurations (set and get drive strength) but is necessary here
  * to avoid complicating the inheritance hierarchy of the GPIO classes.
- * Child classes implementing any GPIO configuration (output, input, etc.) are meant to intherit from this class
+ * Child classes implementing any GPIO configuration (output, input, etc.) are meant to inherit from this class
  * and possibly make some of the functionality publicly available.
  */
 class GPIOBase {
@@ -221,11 +256,13 @@ protected:
      * the sub class.
      *
      * @param num GPIO pin number of the GPIO to be configured.
+     * @param mode GPIO mode of the GPIO to be configured
      *
      * @throws GPIOException
      *              - if the underlying driver function fails
      */
-    GPIOBase(GPIONum num);
+    GPIOBase(GPIONum num, GPIOModeType mode);
+    GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength);
 
     /**
      * @brief Enable gpio pad hold function.
@@ -245,6 +282,45 @@ protected:
      * @throws GPIOException if the underlying driver function fails.
      */
     void hold_dis();
+
+    /**
+     * @brief Set GPIO to high level.
+     *
+     * @throws GPIOException if the underlying driver function fails.
+     */
+    void set_high() const;
+
+    /**
+     * @brief Set GPIO to low level.
+     *
+     * @throws GPIOException if the underlying driver function fails.
+     */
+    void set_low() const;
+
+    /**
+     * @brief Set GPIO to floating level.
+     *
+     * @throws GPIOException if the underlying driver function fails.
+     */
+    void set_floating() const;
+
+    /**
+     * @brief Read the current level of the GPIO.
+     *
+     * @return The GPIO current level of the GPIO.
+     */
+    [[nodiscard]] GPIOLevel get_level() const noexcept;
+
+    explicit operator bool() const;
+
+    /**
+     * @brief Configure the internal pull-up and pull-down restors.
+     *
+     * @param mode The pull-up/pull-down configuration see \c GPIOPullMode.
+     *
+     * @throws GPIOException if the underlying driver function fails.
+     */
+    void set_pull_mode(GPIOPullMode mode) const;
 
     /**
      * @brief Configure the drive strength of the GPIO.
@@ -269,7 +345,11 @@ protected:
      */
     GPIONum gpio_num;
 
-    inline const GPIONum& get_gpio_num(void) const noexcept { return gpio_num; }
+public:
+    /**
+     * @brief Return the number of the configured GPIO pin.
+     */
+    [[nodiscard]] inline const GPIONum& get_gpio_num() const noexcept { return gpio_num; }
 };
 
 /**
@@ -277,6 +357,7 @@ protected:
  */
 class GPIO_Output : public GPIOBase {
 public:
+    using GPIOBase::GPIOBase;
     /**
      * @brief Construct and configure a GPIO as output.
      *
@@ -285,22 +366,11 @@ public:
      * @throws GPIOException
      *              - if the underlying driver function fails
      */
-    GPIO_Output(GPIONum num);
+    explicit GPIO_Output(GPIONum num);
 
-    /**
-     * @brief Set GPIO to high level.
-     *
-     * @throws GPIOException if the underlying driver function fails.
-     */
-    void set_high() const;
-
-    /**
-     * @brief Set GPIO to low level.
-     *
-     * @throws GPIOException if the underlying driver function fails.
-     */
-    void set_low() const;
-
+    using GPIOBase::set_pull_mode;
+    using GPIOBase::set_high;
+    using GPIOBase::set_low;
     using GPIOBase::set_drive_strength;
     using GPIOBase::get_drive_strength;
 };
@@ -310,40 +380,9 @@ public:
  */
 class GPIOInput : public GPIOBase {
 public:
-    /**
-     * @brief Construct and configure a GPIO as input.
-     *
-     * @param num GPIO pin number of the GPIO to be configured.
-     *
-     * @throws GPIOException
-     *              - if the underlying driver function fails
-     */
-    GPIOInput(GPIONum num);
+    using GPIOBase::GPIOBase;
 
-    /**
-     * @brief Constructs and fully configure a GPIO as input
-     *
-     * @param num GPIO pin number of the GPIO to be configured.
-     * @param mode The pull mode to configure on the GPIO
-     * @param strength The internal pull resistor strength to setup on the GPIO
-     */
-    GPIOInput(const GPIONum num, const GPIOPullMode mode, const GPIODriveStrength strength);
-
-    /**
-     * @brief Read the current level of the GPIO.
-     *
-     * @return The GPIO current level of the GPIO.
-     */
-    GPIOLevel get_level() const noexcept;
-
-    /**
-     * @brief Configure the internal pull-up and pull-down restors.
-     *
-     * @param mode The pull-up/pull-down configuration see \c GPIOPullMode.
-     *
-     * @throws GPIOException if the underlying driver function fails.
-     */
-    void set_pull_mode(GPIOPullMode mode) const;
+    explicit GPIOInput(GPIONum num);
 
     /**
      * @brief Configure the pin as wake up pin.
@@ -359,10 +398,9 @@ public:
      */
     void wakeup_disable() const;
 
+    using GPIOBase::set_pull_mode;
     using GPIOBase::set_drive_strength;
     using GPIOBase::get_drive_strength;
-
-    using GPIOBase::get_gpio_num;
 };
 
 /**
@@ -372,6 +410,8 @@ public:
  */
 class GPIO_OpenDrain : public GPIOInput {
 public:
+    using GPIOInput::GPIOInput;
+
     /**
      * @brief Construct and configure a GPIO as open drain output as well as input.
      *
@@ -380,22 +420,11 @@ public:
      * @throws GPIOException
      *              - if the underlying driver function fails
      */
-    GPIO_OpenDrain(GPIONum num);
+    explicit GPIO_OpenDrain(GPIONum num);
 
-    /**
-     * @brief Set GPIO to floating level.
-     *
-     * @throws GPIOException if the underlying driver function fails.
-     */
-    void set_floating() const;
-
-    /**
-     * @brief Set GPIO to low level.
-     *
-     * @throws GPIOException if the underlying driver function fails.
-     */
-    void set_low() const;
-
+    using GPIOBase::set_pull_mode;
+    using GPIOBase::set_floating;
+    using GPIOBase::set_low;
     using GPIOBase::set_drive_strength;
     using GPIOBase::get_drive_strength;
 };

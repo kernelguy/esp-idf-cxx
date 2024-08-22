@@ -21,16 +21,16 @@ using namespace idf;
 using namespace std;
 using namespace std::placeholders;
 
-#define GPIO_NUM_A 12
-#define GPIO_NUM_B 13
-#define GPIO_NUM_C 27
+#define GPIO_NUM_A 4
+#define GPIO_NUM_B 5
+#define GPIO_NUM_C 6
 
 /*****************************************************
  * Lambda function used as callback on GPIO A interrupt
  *****************************************************/
 static size_t counter_a = 0;
-static auto lambda_cb_gpio_a = [](GPIONum gpio_num) {
-    if (gpio_num == GPIONum(GPIO_NUM_A))
+static auto lambda_cb_gpio_a = [](const GPIOInterrupt &gpio) {
+    if (gpio.get_gpio_num() == GPIONum(GPIO_NUM_A))
     {
         counter_a++;
     }
@@ -39,23 +39,29 @@ static auto lambda_cb_gpio_a = [](GPIONum gpio_num) {
 static void task_intr_a(void* arg)
 {
     // create interrupt on GPIO A using a lambda function as callback
-    GPIOIntr gpio_intr_a{GPIONum(GPIO_NUM_A),
-                         GPIOPullMode::PULLDOWN(),
-                         GPIODriveStrength::STRONGEST(),
-                         GPIOIntrType::POSEDGE(),
-                         "lambda_cb_gpio_a",
-                         lambda_cb_gpio_a};
+    GPIOInterrupt gpio_intr_a(GPIONum(GPIO_NUM_A),
+                              GPIOModeType::INPUT_OUTPUT_OPEN_DRAIN(), // Use open drain to let test generate own interrupts
+                              GPIOPullMode::PULLUP(),
+                              GPIODriveStrength::DEFAULT(),
+                              GPIOInterruptType::POSITIVE_EDGE(),
+                              lambda_cb_gpio_a);
 
     size_t cur_counter_a = 0;
-    while(true)
+    for(size_t i = 0 ; ; i++)
     {
         if (counter_a != cur_counter_a)
         {
-            printf("interrupt occured on GPIO A: %d\n", counter_a);
+            printf("interrupt occurred on GPIO A: %d\n", counter_a);
             cur_counter_a = counter_a;
         }
 
         this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (i & 1) {
+            gpio_intr_a.set_floating();
+        }
+        else {
+            gpio_intr_a.set_low();
+        }
     }
 }
 
@@ -64,9 +70,9 @@ static void task_intr_a(void* arg)
  * thread on GPIO B interrupt
  *****************************************************/
 static size_t counter_b = 0;
-static void static_cb_gpio_b(GPIONum gpio_num)
+static void static_cb_gpio_b(const GPIOInterrupt &gpio)
 {
-    if (gpio_num == GPIONum(GPIO_NUM_B))
+    if (gpio.get_gpio_num() == GPIONum(GPIO_NUM_B))
     {
         counter_b++;
     }
@@ -74,23 +80,29 @@ static void static_cb_gpio_b(GPIONum gpio_num)
 
 static void task_intr_b(void* arg)
 {
-    GPIOIntr gpio_intr_b{GPIONum(GPIO_NUM_B),
-                         GPIOPullMode::PULLDOWN(),
-                         GPIODriveStrength::STRONGEST(),
-                         GPIOIntrType::POSEDGE(),
-                         "static_cb_gpio_b",
-                         static_cb_gpio_b};
+    GPIOInterrupt gpio_intr_b(GPIONum(GPIO_NUM_B),
+                              GPIOModeType::INPUT_OUTPUT_OPEN_DRAIN(), // Use open drain to let test generate own interrupts
+                              GPIOPullMode::PULLUP(),
+                              GPIODriveStrength::STRONGEST(),
+                              GPIOInterruptType::POSITIVE_EDGE(),
+                             static_cb_gpio_b);
 
     size_t cur_counter_b = 0;
-    while(true)
+    for(size_t i = 0 ; ; i++)
     {
         if (counter_b != cur_counter_b)
         {
-            printf("interrupt occured on GPIO B: %d\n", counter_b);
+            printf("interrupt occurred on GPIO B: %d\n", counter_b);
             cur_counter_b = counter_b;
         }
 
         this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (i & 1) {
+            gpio_intr_b.set_floating();
+        }
+        else {
+            gpio_intr_b.set_low();
+        }
     }
 }
 
@@ -101,25 +113,15 @@ static void task_intr_b(void* arg)
 class TestIntrC {
 public:
     size_t first_counter_c;
-    size_t second_counter_c;
 
-    TestIntrC(): first_counter_c(0),
-                      second_counter_c(0)
+    TestIntrC(): first_counter_c(0)
     {}
 
-    void first_callback(GPIONum gpio_num)
+    void first_callback(const GPIOInterrupt &gpio)
     {
-        if (gpio_num == GPIONum(GPIO_NUM_C))
+        if (gpio.get_gpio_num() == GPIONum(GPIO_NUM_C))
         {
             first_counter_c++;
-        }
-    }
-
-    void second_callback(GPIONum gpio_num)
-    {
-        if (gpio_num == GPIONum(GPIO_NUM_C))
-        {
-            second_counter_c++;
         }
     }
 };
@@ -128,27 +130,31 @@ static void task_intr_c(void* arg)
 {
     TestIntrC test_intr_c{};
 
-    GPIOIntr gpio_intr_c{GPIONum(GPIO_NUM_C),
-                         GPIOPullMode::PULLDOWN(),
-                         GPIODriveStrength::STRONGEST(),
-                         GPIOIntrType::POSEDGE(),
-                         "first_callback",
-                         std::bind(&TestIntrC::first_callback, &test_intr_c, _1)};
+    GPIOInterrupt gpio_intr_c(GPIONum(GPIO_NUM_C),
+                              GPIOModeType::INPUT_OUTPUT_OPEN_DRAIN(), // Use open drain to let test generate own interrupts
+                              GPIOPullMode::PULLUP(),
+                              GPIODriveStrength::WEAK(),
+                              GPIOInterruptType::POSITIVE_EDGE(),
+                              nullptr);
 
-    gpio_intr_c.add_callback("second_callback",
-                             std::bind(&TestIntrC::second_callback, &test_intr_c, _1));
+    gpio_intr_c.set_callback(std::bind(&TestIntrC::first_callback, &test_intr_c, _1));
 
     size_t cur_counter_c = 0;
-    while(true)
+    for(size_t i = 0 ; ; i++)
     {
-        if (test_intr_c.first_counter_c == test_intr_c.second_counter_c &&
-            test_intr_c.first_counter_c != cur_counter_c)
+        if (test_intr_c.first_counter_c != cur_counter_c)
         {
             printf("Both callbacks triggered on GPIO interrupt C: %d\n", test_intr_c.first_counter_c);
             cur_counter_c = test_intr_c.first_counter_c;
         }
 
         this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (i & 1) {
+            gpio_intr_c.set_floating();
+        }
+        else {
+            gpio_intr_c.set_low();
+        }
     }
 }
 
@@ -159,7 +165,7 @@ extern "C" void app_main(void)
 {
     // install ISR service before creating the interrupt
     try {
-        start_service(GPIOIsrFlag().LEVEL1());
+        GPIOInterruptService::Get().Level1().Start();
     }
     catch (const GPIOException& e) {
         printf("[0x%x]: %s\n", e.error, e.what());

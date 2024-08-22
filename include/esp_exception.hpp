@@ -27,14 +27,14 @@ public:
     /**
      * @param error Error from underlying IDF functions.
      */
-    ESPException(esp_err_t error);
+    explicit ESPException(esp_err_t error);
 
-    virtual ~ESPException() { }
+    ~ESPException() override = default;
 
     /**
      * @return A textual representation of the contained error. This method only wraps \c esp_err_to_name.
      */
-    virtual const char *what() const noexcept;
+    [[nodiscard]] const char *what() const noexcept override;
 
     /**
      * Error from underlying IDF functions. If an exception occurs in a higher level C++ code not directly wrapping
