@@ -18,7 +18,7 @@ namespace idf {
  * @brief Exception which is thrown in the context of SPI C++ classes.
  */
 struct SPIException : public ESPException {
-    SPIException(esp_err_t error);
+    explicit SPIException(esp_err_t error);
 };
 
 /**

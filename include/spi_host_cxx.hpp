@@ -24,7 +24,7 @@ namespace idf {
  * @brief Exception which is thrown in the context of SPI Transactions.
  */
 struct SPITransferException : public SPIException {
-    SPITransferException(esp_err_t error);
+    explicit SPITransferException(esp_err_t error);
 };
 
 class SPIDevice;
@@ -57,10 +57,14 @@ public:
             std::function<void(void *)> post_callback = nullptr,
             void* user_data = nullptr);
 
+    SPITransactionDescriptor(const uint8_t value_to_send[4], uint32_t count,
+                             SPIDeviceHandle *handle,
+                             void* user_data = nullptr);
+
     /**
-     * @brief Deinitialize and delete all data of the transaction.
+     * @brief De-initialize and delete all data of the transaction.
      *
-     * @note This destructor must not becalled before the transaction is finished by the driver.
+     * @note This destructor must not be called before the transaction is finished by the driver.
      */
     ~SPITransactionDescriptor();
 
@@ -166,7 +170,7 @@ public:
      *
      * @param transaction the shared transaction state
      */
-    SPIFuture(std::shared_ptr<SPITransactionDescriptor> transaction);
+    explicit SPIFuture(std::shared_ptr<SPITransactionDescriptor> transaction);
 
     SPIFuture(const SPIFuture &other) = delete;
 
@@ -213,7 +217,7 @@ public:
     /**
      * @return true if this future is valid, otherwise false.
      */
-    bool valid() const noexcept;
+    [[nodiscard]] bool valid() const noexcept;
 
 private:
     /**
@@ -406,7 +410,7 @@ SPIFuture SPIDevice::transfer(IteratorT begin,
 {
     std::vector<uint8_t> write_data;
     write_data.assign(begin, end);
-    return transfer(write_data, pre_callback, post_callback, user_data);
+    return transfer(write_data, std::move(pre_callback), std::move(post_callback), user_data);
 }
 
 }

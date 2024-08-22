@@ -79,7 +79,7 @@ SPIFuture::SPIFuture()
 }
 
 SPIFuture::SPIFuture(shared_ptr<SPITransactionDescriptor> transaction)
-    : transaction(transaction), is_valid(true)
+    : transaction(std::move(transaction)), is_valid(true)
 {
 }
 
@@ -187,6 +187,35 @@ SPITransactionDescriptor::SPITransactionDescriptor(const std::vector<uint8_t> &d
     private_transaction_desc = trans_desc;
 }
 
+SPITransactionDescriptor::SPITransactionDescriptor(const uint8_t value_to_send[4], uint32_t count, SPIDeviceHandle *handle, void *user_data_arg)
+        : device_handle(handle),
+          pre_callback(nullptr),
+          post_callback(nullptr),
+          user_data(user_data_arg),
+          received_data(false),
+          started(false)
+{
+    if (count == 0) {
+        throw SPITransferException(ESP_ERR_INVALID_ARG);
+    }
+    if (handle == nullptr) {
+        throw SPITransferException(ESP_ERR_INVALID_ARG);
+    }
+
+    size_t trans_size = count;
+    spi_transaction_t *trans_desc;
+    trans_desc = new spi_transaction_t;
+    memset(trans_desc, 0, sizeof(spi_transaction_t));
+    trans_desc->flags = SPI_TRANS_USE_TXDATA;
+    trans_desc->rx_buffer = new uint8_t [trans_size];
+    tx_buffer = nullptr;
+    trans_desc->length = trans_size * 8;
+    memcpy(trans_desc->tx_data, value_to_send, 4);
+    trans_desc->user = this;
+
+    private_transaction_desc = trans_desc;
+}
+
 SPITransactionDescriptor::~SPITransactionDescriptor()
 {
     if (started) {
@@ -194,7 +223,7 @@ SPITransactionDescriptor::~SPITransactionDescriptor()
                                 // driver may still write into it afterwards.
     }
 
-    spi_transaction_t *trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
+    auto trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
     delete [] tx_buffer;
     delete [] static_cast<uint8_t*>(trans_desc->rx_buffer);
     delete trans_desc;
@@ -202,7 +231,7 @@ SPITransactionDescriptor::~SPITransactionDescriptor()
 
 void SPITransactionDescriptor::start()
 {
-    spi_transaction_t *trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
+    auto trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
     SPI_CHECK_THROW(device_handle->acquire_bus(portMAX_DELAY));
     SPI_CHECK_THROW(device_handle->queue_trans(trans_desc, 0));
     started = true;
@@ -210,7 +239,7 @@ void SPITransactionDescriptor::start()
 
 void SPITransactionDescriptor::wait()
 {
-    while (wait_for(chrono::milliseconds(portMAX_DELAY)) == false) { }
+    while (!wait_for(chrono::milliseconds(portMAX_DELAY))) { }
 }
 
 bool SPITransactionDescriptor::wait_for(const chrono::milliseconds &timeout_duration)
@@ -251,7 +280,7 @@ std::vector<uint8_t> SPITransactionDescriptor::get()
         wait();
     }
 
-    spi_transaction_t *trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
+    auto trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
     const size_t TRANSACTION_LENGTH = trans_desc->length / 8;
     vector<uint8_t> result(TRANSACTION_LENGTH);
 
