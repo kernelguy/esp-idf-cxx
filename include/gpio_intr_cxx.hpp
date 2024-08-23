@@ -86,6 +86,8 @@ public:
 
     ~GPIOInterrupt();
 
+    using GPIOBase::get_level;
+    using GPIOBase::operator bool;
     using GPIOBase::set_pull_mode;
     using GPIOBase::set_floating;
     using GPIOBase::set_low;

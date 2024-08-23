@@ -398,6 +398,8 @@ public:
      */
     void wakeup_disable() const;
 
+    using GPIOBase::get_level;
+    using GPIOBase::operator bool;
     using GPIOBase::set_pull_mode;
     using GPIOBase::set_drive_strength;
     using GPIOBase::get_drive_strength;
@@ -422,6 +424,8 @@ public:
      */
     explicit GPIO_OpenDrain(GPIONum num);
 
+    using GPIOBase::get_level;
+    using GPIOBase::operator bool;
     using GPIOBase::set_pull_mode;
     using GPIOBase::set_floating;
     using GPIOBase::set_low;
