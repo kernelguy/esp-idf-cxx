@@ -66,41 +66,59 @@ public:
     }
 };
 
+class SpiOptionalPinType {};
+
+template <class T> requires (std::is_base_of_v<SpiOptionalPinType, T>)
+class GPIONumBase<T> : public StrongValueComparable<uint32_t>
+{
+public:
+    constexpr GPIONumBase() : StrongValueComparable<uint32_t>(uint32_t(-1)) {}
+    explicit constexpr GPIONumBase(uint32_t aValue) : StrongValueComparable<uint32_t>(aValue) {}
+
+    using StrongValueComparable<uint32_t>::operator==;
+    using StrongValueComparable<uint32_t>::operator!=;
+
+    /**
+     * Retrieves the valid numerical representation of the GPIO number.
+     */
+    [[nodiscard]] uint32_t get_num() const { return get_value(); };
+};
+
 /**
  * @brief Represents a valid MOSI signal pin number.
  */
-class MOSI_type;
-using MOSI = GPIONumBase<class MOSI_type>;
+class MOSI_type : public SpiOptionalPinType {};
+using MOSI = GPIONumBase<MOSI_type>;
 
 /**
  * @brief Represents a valid MISO signal pin number.
  */
-class MISO_type;
-using MISO = GPIONumBase<class MISO_type>;
+class MISO_type : public SpiOptionalPinType {};
+using MISO = GPIONumBase<MISO_type>;
 
 /**
  * @brief Represents a valid SCLK signal pin number.
  */
-class SCLK_type;
-using SCLK = GPIONumBase<class SCLK_type>;
+class SCLK_type {};
+using SCLK = GPIONumBase<SCLK_type>;
 
 /**
  * @brief Represents a valid CS (chip select) signal pin number.
  */
-class CS_type;
-using CS = GPIONumBase<class CS_type>;
+class CS_type {};
+using CS = GPIONumBase<CS_type>;
 
 /**
  * @brief Represents a valid QSPIWP signal pin number.
  */
-class QSPIWP_type;
-using QSPIWP = GPIONumBase<class QSPIWP_type>;
+class QSPIWP_type : public SpiOptionalPinType {};
+using QSPIWP = GPIONumBase<QSPIWP_type>;
 
 /**
  * @brief Represents a valid QSPIHD signal pin number.
  */
-class QSPIHD_type;
-using QSPIHD = GPIONumBase<class QSPIHD_type>;
+class QSPIHD_type : public SpiOptionalPinType {};
+using QSPIHD = GPIONumBase<QSPIHD_type>;
 
 /**
  * @brief Represents a valid SPI DMA configuration. Use it similar to an enum.

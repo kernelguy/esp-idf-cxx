@@ -30,6 +30,11 @@ struct SPITransferException : public SPIException {
 class SPIDevice;
 class SPIDeviceHandle;
 
+union tx_data_t {
+    uint8_t bytes[4];
+    uint32_t value;
+};
+
 /**
  * @brief Describes and encapsulates the transaction.
  *
@@ -57,9 +62,11 @@ public:
             std::function<void(void *)> post_callback = nullptr,
             void* user_data = nullptr);
 
-    SPITransactionDescriptor(const uint8_t value_to_send[4], uint32_t count,
+    SPITransactionDescriptor(tx_data_t value_to_send, size_t count,
                              SPIDeviceHandle *handle,
-                             void* user_data = nullptr);
+                             std::function<void(void *)> pre_callback = nullptr,
+                             std::function<void(void *)> post_callback = nullptr,
+                             void* user_data_arg = nullptr);
 
     /**
      * @brief De-initialize and delete all data of the transaction.
@@ -285,6 +292,11 @@ public:
             std::function<void(void *)> post_callback = nullptr,
             void* user_data = nullptr);
 
+    SPIFuture transfer(tx_data_t aData, size_t aSize,
+                       std::function<void(void *)> pre_callback = nullptr,
+                       std::function<void(void *)> post_callback = nullptr,
+                       void* user_data = nullptr);
+
     /**
      * @brief Queue a transfer to this device like \c transfer, but using begin/end iterators instead of a
      *      data vector.
@@ -336,26 +348,6 @@ public:
      * @param mosi The pin number for the MOSI signal of this bus.
      * @param miso The pin number for the MISO signal of this bus.
      * @param sclk The pin number for the clock signal of this bus.
-     * @param dma_config The DMA configuration for this bus, see \c DMAConfig.
-     * @param max_transfer_size The maximum transfer size in bytes.
-     *
-     * @throws SPIException with IDF error code if the underlying driver fails.
-     */
-    explicit SPIMaster(SPINum host,
-            const MOSI &mosi,
-            const MISO &miso,
-            const SCLK &sclk,
-            SPI_DMAConfig dma_config = SPI_DMAConfig::AUTO(),
-            SPITransferSize max_transfer_size = SPITransferSize::default_size());
-
-    /*
-     * @brief Create an SPI Master Bus.
-     *
-     * @param host The SPI host (bus) which should be used. ESP chips have a number of different possible SPI hosts,
-     *      each of which will create its own bus. Consult the datasheet and TRM on which host to choose.
-     * @param mosi The pin number for the MOSI signal of this bus.
-     * @param miso The pin number for the MISO signal of this bus.
-     * @param sclk The pin number for the clock signal of this bus.
      * @param qspiwp The pin number for the QSPIWP signal of this bus.
      * @param qspihd The pin number for the QSPIHD signal of this bus.
      * @param dma_config The DMA configuration for this bus, see \c DMAConfig.
@@ -364,11 +356,11 @@ public:
      * @throws SPIException with IDF error code if the underlying driver fails.
      */
     explicit SPIMaster(SPINum host,
-            const MOSI &mosi,
-            const MISO &miso,
-            const SCLK &sclk,
-            const QSPIWP &qspiwp,
-            const QSPIHD &qspihd,
+            SCLK sclk,
+            MOSI mosi = MOSI(),
+            MISO miso = MISO(),
+            QSPIWP qspiwp = QSPIWP(),
+            QSPIHD qspihd = QSPIHD(),
             SPI_DMAConfig dma_config = SPI_DMAConfig::AUTO(),
             SPITransferSize max_transfer_size = SPITransferSize::default_size());
 
@@ -392,7 +384,10 @@ public:
      * @param cs The pin number for the CS (chip select) signal to talk to the device.
      * @param f The frequency used to talk to the device.
      */
-    std::shared_ptr<SPIDevice> create_dev(CS cs, Frequency frequency = Frequency::MHz(1));
+    template <class T = SPIDevice>
+    std::shared_ptr<T> create_dev(CS cs, Frequency frequency = Frequency::MHz(1)) {
+        return std::make_shared<T>(spi_host, cs, frequency);
+    }
 
 private:
     /**

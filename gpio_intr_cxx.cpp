@@ -21,9 +21,9 @@ void GPIOInterruptService::ServiceCheck()
     }
 }
 
-void GPIOInterruptService::Start()
+void GPIOInterruptService::Start(InterruptFlags aFlags)
 {
-    GPIO_CHECK_THROW(gpio_install_isr_service(mFlags));
+    GPIO_CHECK_THROW(gpio_install_isr_service(aFlags.GetValue()));
     mStarted = true;
 }
 

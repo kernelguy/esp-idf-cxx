@@ -69,12 +69,12 @@ public:
 /**
  * This is a TAG type whose sole purpose is to create a distinct type from GPIONumBase.
  */
-class GPIONumType;
+class GPIONumType {};
 
 /**
  * A GPIO number type used for general GPIOs, in contrast to specific GPIO pins like e.g. SPI_SCLK.
  */
-using GPIONum = GPIONumBase<class GPIONumType>;
+using GPIONum = GPIONumBase<GPIONumType>;
 
 /**
  * Level of an input GPIO.

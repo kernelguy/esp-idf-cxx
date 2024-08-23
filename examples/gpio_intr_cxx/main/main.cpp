@@ -165,7 +165,7 @@ extern "C" void app_main(void)
 {
     // install ISR service before creating the interrupt
     try {
-        GPIOInterruptService::Get().Level1().Start();
+        GPIOInterruptService::Get().Start(InterruptFlags().Level1());
     }
     catch (const GPIOException& e) {
         printf("[0x%x]: %s\n", e.error, e.what());

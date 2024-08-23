@@ -15,6 +15,29 @@
 
 namespace idf {
 
+class InterruptFlags
+{
+public:
+    constexpr InterruptFlags() = default;
+
+    constexpr InterruptFlags& Level1()      { mFlags |= (1<<1); return *this; }
+    constexpr InterruptFlags& Level2()      { mFlags |= (1<<2); return *this; }
+    constexpr InterruptFlags& Level3()      { mFlags |= (1<<3); return *this; }
+    constexpr InterruptFlags& Level4()      { mFlags |= (1<<4); return *this; }
+    constexpr InterruptFlags& Level5()      { mFlags |= (1<<5); return *this; }
+    constexpr InterruptFlags& Level6()      { mFlags |= (1<<6); return *this; }
+    constexpr InterruptFlags& NonMaskable() { mFlags |= (1<<7); return *this; }
+    constexpr InterruptFlags& Shared()      { mFlags |= (1<<8); return *this; }
+    constexpr InterruptFlags& Edge()        { mFlags |= (1<<9); return *this; }
+    constexpr InterruptFlags& InternalRAM() { mFlags |= (1<<10); return *this; }
+    constexpr InterruptFlags& Disabled()    { mFlags |= (1<<11); return *this; }
+
+    [[nodiscard]] constexpr uint32_t GetValue() const { return mFlags; }
+protected:
+    uint32_t mFlags = 0;
+};
+
+
 class GPIOInterruptService
 {
 public:
@@ -28,20 +51,7 @@ public:
     GPIOInterruptService& operator=(const GPIOInterruptService&) = delete;
     GPIOInterruptService& operator=(GPIOInterruptService&&) = delete;
 
-    GPIOInterruptService& Level1()      { mFlags |= (1<<1); return *this; }
-    GPIOInterruptService& Level2()      { mFlags |= (1<<2); return *this; }
-    GPIOInterruptService& Level3()      { mFlags |= (1<<3); return *this; }
-    GPIOInterruptService& Level4()      { mFlags |= (1<<4); return *this; }
-    GPIOInterruptService& Level5()      { mFlags |= (1<<5); return *this; }
-    GPIOInterruptService& Level6()      { mFlags |= (1<<6); return *this; }
-    GPIOInterruptService& NonMaskable() { mFlags |= (1<<7); return *this; }
-    GPIOInterruptService& Shared()      { mFlags |= (1<<8); return *this; }
-    GPIOInterruptService& Edge()        { mFlags |= (1<<9); return *this; }
-    GPIOInterruptService& InternalRAM() { mFlags |= (1<<10); return *this; }
-    GPIOInterruptService& Disabled()    { mFlags |= (1<<11); return *this; }
-    GPIOInterruptService& Clear()       { mFlags = 0; return *this; }
-
-    void Start();
+    void Start(InterruptFlags aFlags);
     void Stop();
 
 protected:
