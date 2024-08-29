@@ -357,7 +357,6 @@ public:
  */
 class GPIO_Output : public GPIOBase {
 public:
-    using GPIOBase::GPIOBase;
     /**
      * @brief Construct and configure a GPIO as output.
      *
@@ -367,6 +366,8 @@ public:
      *              - if the underlying driver function fails
      */
     explicit GPIO_Output(GPIONum num);
+    GPIO_Output(GPIONum num, GPIOModeType mode) : GPIOBase(num, mode) {}
+    GPIO_Output(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength) : GPIOBase(num, mode, pull, strength) {}
 
     using GPIOBase::set_pull_mode;
     using GPIOBase::set_high;
@@ -380,9 +381,9 @@ public:
  */
 class GPIOInput : public GPIOBase {
 public:
-    using GPIOBase::GPIOBase;
-
     explicit GPIOInput(GPIONum num);
+    GPIOInput(GPIONum num, GPIOModeType mode) : GPIOBase(num, mode) {}
+    GPIOInput(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength) : GPIOBase(num, mode, pull, strength) {}
 
     /**
      * @brief Configure the pin as wake up pin.
@@ -412,8 +413,6 @@ public:
  */
 class GPIO_OpenDrain : public GPIOInput {
 public:
-    using GPIOInput::GPIOInput;
-
     /**
      * @brief Construct and configure a GPIO as open drain output as well as input.
      *
@@ -423,14 +422,11 @@ public:
      *              - if the underlying driver function fails
      */
     explicit GPIO_OpenDrain(GPIONum num);
+    GPIO_OpenDrain(GPIONum num, GPIOModeType mode) : GPIOInput(num, mode) {}
+    GPIO_OpenDrain(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength) : GPIOInput(num, mode, pull, strength) {}
 
-    using GPIOBase::get_level;
-    using GPIOBase::operator bool;
-    using GPIOBase::set_pull_mode;
     using GPIOBase::set_floating;
     using GPIOBase::set_low;
-    using GPIOBase::set_drive_strength;
-    using GPIOBase::get_drive_strength;
 };
 
 }
