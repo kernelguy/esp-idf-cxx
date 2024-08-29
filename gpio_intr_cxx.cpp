@@ -85,7 +85,7 @@ void GPIOInterrupt::disable() const
 void GPIOInterrupt::driver_handler(void* class_ptr)
 {
     auto p = reinterpret_cast<GPIOInterrupt*>(class_ptr);
-    if (p->mCallback) {
+    if (p && p->mCallback) {
         p->mCallback(*p);
     }
 }
