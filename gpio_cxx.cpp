@@ -195,19 +195,9 @@ void GPIOBase::hold_dis()
     GPIO_CHECK_THROW(gpio_hold_dis(gpio_num.get_value<gpio_num_t>()));
 }
 
-void GPIOBase::set_high() const
+void GPIOBase::set(bool aValue) const
 {
-    GPIO_CHECK_THROW(gpio_set_level(gpio_num.get_value<gpio_num_t>(), 1));
-}
-
-void GPIOBase::set_low() const
-{
-    GPIO_CHECK_THROW(gpio_set_level(gpio_num.get_value<gpio_num_t>(), 0));
-}
-
-void GPIOBase::set_floating() const
-{
-    set_high();
+    GPIO_CHECK_THROW(gpio_set_level(gpio_num.get_value<gpio_num_t>(), aValue ? 1 : 0));
 }
 
 void GPIOBase::set_pull_mode(GPIOPullMode mode) const

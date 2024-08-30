@@ -288,21 +288,47 @@ protected:
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void set_high() const;
+    void set_high() const
+    {
+        set(true);
+    }
 
     /**
      * @brief Set GPIO to low level.
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void set_low() const;
+    void set_low() const
+    {
+        set(false);
+    }
+
+    /**
+     * @brief Set GPIO to given level.
+     *
+     * @throws GPIOException if the underlying driver function fails.
+     */
+    void set(bool aValue) const;
+
+    /**
+     * @brief Set GPIO to given level.
+     *
+     * @throws GPIOException if the underlying driver function fails.
+     */
+    void set_level(GPIOLevel aLevel) const
+    {
+        set(aLevel == GPIOLevel::HIGH);
+    }
 
     /**
      * @brief Set GPIO to floating level.
      *
      * @throws GPIOException if the underlying driver function fails.
      */
-    void set_floating() const;
+    void set_floating() const
+    {
+        set(true);
+    }
 
     /**
      * @brief Read the current level of the GPIO.
@@ -372,6 +398,8 @@ public:
     using GPIOBase::set_pull_mode;
     using GPIOBase::set_high;
     using GPIOBase::set_low;
+    using GPIOBase::set;
+    using GPIOBase::set_level;
     using GPIOBase::set_drive_strength;
     using GPIOBase::get_drive_strength;
 };
@@ -427,6 +455,7 @@ public:
 
     using GPIOBase::set_floating;
     using GPIOBase::set_low;
+    using GPIOBase::set;
 };
 
 }
