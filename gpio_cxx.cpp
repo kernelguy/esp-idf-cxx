@@ -174,8 +174,15 @@ GPIOModeType GPIOModeType::INPUT_OUTPUT()
 GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode)
     : gpio_num(num)
 {
-    GPIO_CHECK_THROW(gpio_reset_pin(gpio_num.get_value<gpio_num_t>()));
-    GPIO_CHECK_THROW(gpio_set_direction(gpio_num.get_value<gpio_num_t>(), mode.get_value<gpio_mode_t>()));
+    gpio_config_t cfg = {
+            .pin_bit_mask = gpio_num.get_value<uint64_t>(),
+            .mode = mode.get_value<gpio_mode_t>(),
+            // For safety reasons do not pull in any direction!!!
+            .pull_up_en = gpio_pullup_t::GPIO_PULLUP_DISABLE,
+            .pull_down_en = gpio_pulldown_t::GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE,
+    };
+    GPIO_CHECK_THROW(gpio_config(&cfg));
 }
 
 GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength)

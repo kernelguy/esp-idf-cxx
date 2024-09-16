@@ -411,7 +411,7 @@ class GPIOInput : public GPIOBase {
 public:
     explicit GPIOInput(GPIONum num);
     GPIOInput(GPIONum num, GPIOModeType mode) : GPIOBase(num, mode) {}
-    GPIOInput(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength) : GPIOBase(num, mode, pull, strength) {}
+    GPIOInput(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength = GPIODriveStrength::DEFAULT()) : GPIOBase(num, mode, pull, strength) {}
 
     /**
      * @brief Configure the pin as wake up pin.
