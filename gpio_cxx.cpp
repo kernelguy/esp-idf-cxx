@@ -171,24 +171,18 @@ GPIOModeType GPIOModeType::INPUT_OUTPUT()
     return GPIOModeType(GPIO_MODE_INPUT_OUTPUT);
 }
 
-GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode)
+GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength)
     : gpio_num(num)
 {
     gpio_config_t cfg = {
             .pin_bit_mask = BIT64(gpio_num.get_value<uint64_t>()),
             .mode = mode.get_value<gpio_mode_t>(),
             // For safety reasons do not pull in any direction!!!
-            .pull_up_en = gpio_pullup_t::GPIO_PULLUP_DISABLE,
-            .pull_down_en = gpio_pulldown_t::GPIO_PULLDOWN_DISABLE,
+            .pull_up_en = ((GPIOPullMode::PULLUP().get_value() == pull.get_value()) ? gpio_pullup_t::GPIO_PULLUP_ENABLE : gpio_pullup_t::GPIO_PULLUP_DISABLE), // NOLINT
+            .pull_down_en = ((GPIOPullMode::PULLDOWN().get_value() == pull.get_value()) ? gpio_pulldown_t::GPIO_PULLDOWN_ENABLE : gpio_pulldown_t::GPIO_PULLDOWN_DISABLE), // NOLINT
             .intr_type = GPIO_INTR_DISABLE,
     };
     GPIO_CHECK_THROW(gpio_config(&cfg));
-}
-
-GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength)
-    : GPIOBase(num, mode)
-{
-    set_pull_mode(pull);
     set_drive_strength(strength);
 }
 
@@ -241,16 +235,6 @@ GPIODriveStrength GPIOBase::get_drive_strength()
     return GPIODriveStrength(static_cast<uint32_t>(strength));
 }
 
-GPIO_Output::GPIO_Output(GPIONum num)
-    : GPIOBase(num, GPIOModeType::OUTPUT())
-{
-}
-
-GPIOInput::GPIOInput(GPIONum num)
-        : GPIOBase(num, GPIOModeType::INPUT())
-{
-}
-
 void GPIOInput::wakeup_enable(GPIOWakeupIntrType interrupt_type) const
 {
     GPIO_CHECK_THROW(gpio_wakeup_enable(gpio_num.get_value<gpio_num_t>(),
@@ -260,11 +244,6 @@ void GPIOInput::wakeup_enable(GPIOWakeupIntrType interrupt_type) const
 void GPIOInput::wakeup_disable() const
 {
     GPIO_CHECK_THROW(gpio_wakeup_disable(gpio_num.get_value<gpio_num_t>()));
-}
-
-GPIO_OpenDrain::GPIO_OpenDrain(GPIONum num)
-    : GPIOInput(num, GPIOModeType::INPUT_OUTPUT_OPEN_DRAIN())
-{
 }
 
 }

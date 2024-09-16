@@ -257,12 +257,13 @@ protected:
      *
      * @param num GPIO pin number of the GPIO to be configured.
      * @param mode GPIO mode of the GPIO to be configured
+     * @param pull GPIO pull up/down configuration
+     * @param strength GPIO output drive strength
      *
      * @throws GPIOException
      *              - if the underlying driver function fails
      */
-    GPIOBase(GPIONum num, GPIOModeType mode);
-    GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength);
+    GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull = GPIOPullMode::FLOATING(), GPIODriveStrength strength = GPIODriveStrength::DEFAULT());
 
     /**
      * @brief Enable gpio pad hold function.
@@ -391,9 +392,8 @@ public:
      * @throws GPIOException
      *              - if the underlying driver function fails
      */
-    explicit GPIO_Output(GPIONum num);
-    GPIO_Output(GPIONum num, GPIOModeType mode) : GPIOBase(num, mode) {}
-    GPIO_Output(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength) : GPIOBase(num, mode, pull, strength) {}
+    explicit GPIO_Output(GPIONum num, GPIOModeType mode = GPIOModeType::OUTPUT(), GPIOPullMode pull = GPIOPullMode::FLOATING(),
+                         GPIODriveStrength strength = GPIODriveStrength::DEFAULT()) : GPIOBase(num, mode, pull, strength) {}
 
     using GPIOBase::set_pull_mode;
     using GPIOBase::set_high;
@@ -409,9 +409,8 @@ public:
  */
 class GPIOInput : public GPIOBase {
 public:
-    explicit GPIOInput(GPIONum num);
-    GPIOInput(GPIONum num, GPIOModeType mode) : GPIOBase(num, mode) {}
-    GPIOInput(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength = GPIODriveStrength::DEFAULT()) : GPIOBase(num, mode, pull, strength) {}
+    explicit GPIOInput(GPIONum num, GPIOModeType mode = GPIOModeType::INPUT(), GPIOPullMode pull = GPIOPullMode::FLOATING(),
+                       GPIODriveStrength strength = GPIODriveStrength::DEFAULT()) : GPIOBase(num, mode, pull, strength) {}
 
     /**
      * @brief Configure the pin as wake up pin.
@@ -449,9 +448,8 @@ public:
      * @throws GPIOException
      *              - if the underlying driver function fails
      */
-    explicit GPIO_OpenDrain(GPIONum num);
-    GPIO_OpenDrain(GPIONum num, GPIOModeType mode) : GPIOInput(num, mode) {}
-    GPIO_OpenDrain(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength) : GPIOInput(num, mode, pull, strength) {}
+    explicit GPIO_OpenDrain(GPIONum num, GPIOModeType mode = GPIOModeType::INPUT_OUTPUT_OPEN_DRAIN(), GPIOPullMode pull = GPIOPullMode::PULLUP(),
+                            GPIODriveStrength strength = GPIODriveStrength::DEFAULT()) : GPIOInput(num, mode, pull, strength) {}
 
     using GPIOBase::set_floating;
     using GPIOBase::set_low;
