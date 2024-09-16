@@ -175,7 +175,7 @@ GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode)
     : gpio_num(num)
 {
     gpio_config_t cfg = {
-            .pin_bit_mask = gpio_num.get_value<uint64_t>(),
+            .pin_bit_mask = BIT64(gpio_num.get_value<uint64_t>()),
             .mode = mode.get_value<gpio_mode_t>(),
             // For safety reasons do not pull in any direction!!!
             .pull_up_en = gpio_pullup_t::GPIO_PULLUP_DISABLE,
