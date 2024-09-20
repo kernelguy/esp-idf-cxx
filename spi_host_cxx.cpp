@@ -74,7 +74,7 @@ SPIFuture &SPIFuture::operator=(SPIFuture &&other) noexcept
     return *this;
 }
 
-SPITransactionTesult SPIFuture::get()
+SPITransactionResult SPIFuture::get()
 {
     if (!is_valid) {
         throw std::future_error(future_errc::no_state);
@@ -206,7 +206,7 @@ bool SPITransactionDescriptor::wait_for(const chrono::milliseconds &timeout_dura
     return true;
 }
 
-SPITransactionTesult SPITransactionDescriptor::get()
+SPITransactionResult SPITransactionDescriptor::get()
 {
     if (!received_data) {
         wait();

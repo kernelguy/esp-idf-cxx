@@ -31,7 +31,7 @@ struct SPITransferException : public SPIException {
 class SPIDevice;
 class SPIDeviceHandle;
 
-using SPITransactionTesult = std::pair<uint8_t*, size_t>;
+using SPITransactionResult = std::pair<uint8_t*, size_t>;
 
 /**
  * @brief Describes and encapsulates the transaction.
@@ -85,7 +85,7 @@ public:
      *      transaction descriptor for some reason. In the former case, the error code is the one from the
      *      underlying driver, in the latter case, the error code is ESP_ERR_INVALID_STATE.
      */
-    SPITransactionTesult get();
+    SPITransactionResult get();
 
     /**
      * @brief Wait until the asynchronous operation is done.
@@ -193,7 +193,7 @@ public:
      *      underlying driver, in the latter case, the error code is ESP_ERR_INVALID_STATE.
      * @return The result of the asynchronous SPI transaction.
      */
-    SPITransactionTesult get();
+    SPITransactionResult get();
 
     /**
      * @brief Wait for a result up to timeout ms.
