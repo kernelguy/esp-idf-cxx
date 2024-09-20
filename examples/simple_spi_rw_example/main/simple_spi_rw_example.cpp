@@ -40,9 +40,10 @@ extern "C" void app_main(void)
         shared_ptr<SPIDevice> spi_dev = master.create_dev(CS_PIN, Frequency::MHz(1));
 
         vector<uint8_t> write_data = {MPU9250_WHO_AM_I_REG_ADDR | READ_FLAG, 0x00};
-        vector<uint8_t> result = spi_dev->transfer(write_data).get();
+        vector<uint8_t> read_buffer(write_data.size(), 0);
+        auto result = spi_dev->transfer(write_data.data(), read_buffer.data(), write_data.size()).get();
 
-        printf("Result of WHO_AM_I register: 0x%02X\n", result[1]);
+        printf("Result of WHO_AM_I register: 0x%02X\n", result.first[1]);
 
         this_thread::sleep_for(std::chrono::seconds(2));
 }
