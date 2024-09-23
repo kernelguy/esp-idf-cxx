@@ -126,6 +126,23 @@ SPIFuture SPIDevice::transfer(const uint8_t *apTxData, uint8_t *apRxData, size_t
     return SPIFuture(current_transaction);
 }
 
+void SPIDevice::prepare(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, std::function<void(void *)> pre_callback, std::function<void(void *)> post_callback, void *user_data)
+{
+    current_transaction = make_shared<SPITransactionDescriptor>(apTxData,
+                                                                apRxData,
+                                                                aDataSize,
+                                                                device_handle,
+                                                                user_data,
+                                                                std::move(pre_callback),
+                                                                std::move(post_callback));
+}
+
+SPIFuture SPIDevice::transfer_prepared()
+{
+    current_transaction->start();
+    return SPIFuture(current_transaction);
+}
+
 
 SPITransactionDescriptor::SPITransactionDescriptor(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, SPIDeviceHandle *apHandle, void *apUserData,
                                                    trans_callback_t aPreCallback, trans_callback_t aPostCallback)

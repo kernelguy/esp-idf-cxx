@@ -278,6 +278,11 @@ public:
     SPIFuture transfer(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, std::function<void(void *)> pre_callback = nullptr,
                                   std::function<void(void *)> post_callback = nullptr, void *user_data = nullptr);
 
+    void prepare(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, std::function<void(void *)> pre_callback = nullptr,
+                       std::function<void(void *)> post_callback = nullptr, void *user_data = nullptr);
+
+    SPIFuture transfer_prepared();
+
     /**
      * @brief Queue a transfer to this device like \c transfer, but using begin/end iterators instead of a
      *      data vector.
