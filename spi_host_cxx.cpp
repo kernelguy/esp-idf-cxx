@@ -183,6 +183,7 @@ void SPITransactionDescriptor::start()
 {
     SPI_CHECK_THROW(device_handle->acquire_bus(portMAX_DELAY));
     SPI_CHECK_THROW(device_handle->queue_trans(&transaction, 0));
+    received_data = false;
     started = true;
 }
 
