@@ -171,7 +171,7 @@ GPIOModeType GPIOModeType::INPUT_OUTPUT()
     return GPIOModeType(GPIO_MODE_INPUT_OUTPUT);
 }
 
-GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength)
+GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type)
     : gpio_num(num)
 {
     gpio_config_t cfg = {
@@ -180,7 +180,7 @@ GPIOBase::GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveS
             // For safety reasons do not pull in any direction!!!
             .pull_up_en = ((GPIOPullMode::PULLUP().get_value() == pull.get_value()) ? gpio_pullup_t::GPIO_PULLUP_ENABLE : gpio_pullup_t::GPIO_PULLUP_DISABLE), // NOLINT
             .pull_down_en = ((GPIOPullMode::PULLDOWN().get_value() == pull.get_value()) ? gpio_pulldown_t::GPIO_PULLDOWN_ENABLE : gpio_pulldown_t::GPIO_PULLDOWN_DISABLE), // NOLINT
-            .intr_type = GPIO_INTR_DISABLE,
+            .intr_type = type.get_value<gpio_int_type_t>()
     };
     GPIO_CHECK_THROW(gpio_config(&cfg));
     set_drive_strength(strength);
