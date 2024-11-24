@@ -5,6 +5,7 @@
  */
 #include "gpio_intr_cxx.hpp"
 #include "driver/gpio.h"
+#include "esp_attr.h"
 
 namespace idf {
 
@@ -81,7 +82,7 @@ void GPIOInterrupt::disable() const
     GPIO_CHECK_THROW(gpio_intr_disable(gpio_num.get_value<gpio_num_t>()));
 }
 
-void GPIOInterrupt::driver_handler(void* class_ptr)
+void IRAM_ATTR GPIOInterrupt::driver_handler(void* class_ptr)
 {
     auto p = reinterpret_cast<GPIOInterrupt*>(class_ptr);
     if (p && p->mCallback) {
