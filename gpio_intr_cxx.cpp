@@ -37,7 +37,6 @@ void GPIOInterruptService::Stop()
 GPIOInterrupt::GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type, GPIOInterrupt::interrupt_callback_t cb, uintptr_t aArg)
     : GPIOBase(num, mode, pull, strength, type)
 {
-    set_type(type);
     set_callback(std::move(cb), aArg);
 }
 
