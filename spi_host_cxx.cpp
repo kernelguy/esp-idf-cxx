@@ -11,7 +11,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
 #include "hal/spi_types.h"
-#include "driver/spi_master.h"
 #include "spi_host_cxx.hpp"
 #include "spi_host_private_cxx.hpp"
 
@@ -75,7 +74,7 @@ SPIFuture &SPIFuture::operator=(SPIFuture &&other) noexcept
     return *this;
 }
 
-vector<uint8_t> SPIFuture::get()
+SPITransactionResult SPIFuture::get()
 {
     if (!is_valid) {
         throw std::future_error(future_errc::no_state);
@@ -113,100 +112,63 @@ SPIDevice::~SPIDevice()
     delete device_handle;
 }
 
-SPIFuture SPIDevice::transfer(const vector<uint8_t> &data_to_send,
-            std::function<void(void *)> pre_callback,
-            std::function<void(void *)> post_callback,
-            void* user_data)
-{
-    current_transaction = make_shared<SPITransactionDescriptor>(data_to_send,
-            device_handle,
-            std::move(pre_callback),
-            std::move(post_callback),
-            user_data);
-    current_transaction->start();
-    return SPIFuture(current_transaction);
-}
-
-SPIFuture SPIDevice::transfer(tx_data_t aData, size_t aSize, std::function<void(void *)> pre_callback,
+SPIFuture SPIDevice::transfer(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, std::function<void(void *)> pre_callback,
                               std::function<void(void *)> post_callback, void *user_data)
 {
-    current_transaction = make_shared<SPITransactionDescriptor>(aData,
-                                                                aSize,
+    current_transaction = make_shared<SPITransactionDescriptor>(apTxData,
+                                                                apRxData,
+                                                                aDataSize,
                                                                 device_handle,
+                                                                user_data,
                                                                 std::move(pre_callback),
-                                                                std::move(post_callback),
-                                                                user_data);
+                                                                std::move(post_callback));
     current_transaction->start();
     return SPIFuture(current_transaction);
 }
 
-SPITransactionDescriptor::SPITransactionDescriptor(const std::vector<uint8_t> &data_to_send,
-        SPIDeviceHandle *handle,
-        std::function<void(void *)> pre_callback,
-        std::function<void(void *)> post_callback,
-        void* user_data_arg)
-    : device_handle(handle),
-    pre_callback(std::move(pre_callback)),
-    post_callback(std::move(post_callback)),
-    user_data(user_data_arg),
-    received_data(false),
-    started(false)
+void SPIDevice::prepare(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, std::function<void(void *)> pre_callback, std::function<void(void *)> post_callback, void *user_data)
 {
-    // C++11 vectors don't have size() or empty() members yet
-    if (data_to_send.begin() == data_to_send.end()) {
-        throw SPITransferException(ESP_ERR_INVALID_ARG);
-    }
-    if (handle == nullptr) {
-        throw SPITransferException(ESP_ERR_INVALID_ARG);
-    }
-
-    size_t trans_size = data_to_send.size();
-    spi_transaction_t *trans_desc;
-    trans_desc = new spi_transaction_t;
-    memset(trans_desc, 0, sizeof(spi_transaction_t));
-    trans_desc->rx_buffer = new uint8_t [trans_size];
-    tx_buffer = new uint8_t [trans_size];
-    for (size_t i = 0; i < trans_size; i++) {
-        tx_buffer[i] = data_to_send[i];
-    }
-    trans_desc->length = trans_size * 8;
-    trans_desc->tx_buffer = tx_buffer;
-    trans_desc->user = this;
-
-    private_transaction_desc = trans_desc;
+    current_transaction = make_shared<SPITransactionDescriptor>(apTxData,
+                                                                apRxData,
+                                                                aDataSize,
+                                                                device_handle,
+                                                                user_data,
+                                                                std::move(pre_callback),
+                                                                std::move(post_callback));
 }
 
-SPITransactionDescriptor::SPITransactionDescriptor(tx_data_t value_to_send, size_t count,
-                                                   SPIDeviceHandle *handle,
-                                                   std::function<void(void *)> pre_callback,
-                                                   std::function<void(void *)> post_callback,
-                                                   void *user_data_arg)
-        : device_handle(handle),
-          pre_callback(std::move(pre_callback)),
-          post_callback(std::move(post_callback)),
-          user_data(user_data_arg),
-          received_data(false),
-          started(false)
+SPIFuture SPIDevice::transfer_prepared()
 {
-    if (count == 0) {
+    current_transaction->start();
+    return SPIFuture(current_transaction);
+}
+
+
+SPITransactionDescriptor::SPITransactionDescriptor(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, SPIDeviceHandle *apHandle, void *apUserData,
+                                                   trans_callback_t aPreCallback, trans_callback_t aPostCallback)
+        : device_handle(apHandle),
+          pre_callback(std::move(aPreCallback)),
+          post_callback(std::move(aPostCallback)),
+          user_data(apUserData)
+{
+    if (apTxData == nullptr) {
         throw SPITransferException(ESP_ERR_INVALID_ARG);
     }
-    if (handle == nullptr) {
+    if (apRxData == nullptr) {
+        throw SPITransferException(ESP_ERR_INVALID_ARG);
+    }
+    if (aDataSize == 0) {
+        throw SPITransferException(ESP_ERR_INVALID_ARG);
+    }
+    if (apHandle == nullptr) {
         throw SPITransferException(ESP_ERR_INVALID_ARG);
     }
 
-    size_t trans_size = count;
-    spi_transaction_t *trans_desc;
-    trans_desc = new spi_transaction_t;
-    memset(trans_desc, 0, sizeof(spi_transaction_t));
-    trans_desc->flags = SPI_TRANS_USE_TXDATA;
-    trans_desc->rx_buffer = new uint8_t [trans_size];
-    tx_buffer = nullptr;
-    trans_desc->length = trans_size * 8;
-    memcpy(trans_desc->tx_data, value_to_send.bytes, sizeof(tx_data_t::bytes));
-    trans_desc->user = this;
-
-    private_transaction_desc = trans_desc;
+    transaction.flags = 0;
+    transaction.rx_buffer = apRxData;
+    transaction.length = aDataSize * 8;
+    transaction.tx_buffer = apTxData;
+    transaction.user = this;
 }
 
 SPITransactionDescriptor::~SPITransactionDescriptor()
@@ -215,18 +177,13 @@ SPITransactionDescriptor::~SPITransactionDescriptor()
         assert(received_data);  // We need to make sure that trans_desc has been received, otherwise the
                                 // driver may still write into it afterwards.
     }
-
-    auto trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
-    delete [] tx_buffer;
-    delete [] static_cast<uint8_t*>(trans_desc->rx_buffer);
-    delete trans_desc;
 }
 
 void SPITransactionDescriptor::start()
 {
-    auto trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
     SPI_CHECK_THROW(device_handle->acquire_bus(portMAX_DELAY));
-    SPI_CHECK_THROW(device_handle->queue_trans(trans_desc, 0));
+    SPI_CHECK_THROW(device_handle->queue_trans(&transaction, 0));
+    received_data = false;
     started = true;
 }
 
@@ -257,7 +214,7 @@ bool SPITransactionDescriptor::wait_for(const chrono::milliseconds &timeout_dura
         throw SPITransferException(err);
     }
 
-    if (acquired_trans_desc != reinterpret_cast<spi_transaction_t*>(private_transaction_desc)) {
+    if (acquired_trans_desc != &transaction) {
         throw SPITransferException(ESP_ERR_INVALID_STATE);
     }
 
@@ -267,21 +224,13 @@ bool SPITransactionDescriptor::wait_for(const chrono::milliseconds &timeout_dura
     return true;
 }
 
-std::vector<uint8_t> SPITransactionDescriptor::get()
+SPITransactionResult SPITransactionDescriptor::get()
 {
     if (!received_data) {
         wait();
     }
 
-    auto trans_desc = reinterpret_cast<spi_transaction_t*>(private_transaction_desc);
-    const size_t TRANSACTION_LENGTH = trans_desc->length / 8;
-    vector<uint8_t> result(TRANSACTION_LENGTH);
-
-    for (int i = 0; i < TRANSACTION_LENGTH; i++) {
-        result[i] = static_cast<uint8_t*>(trans_desc->rx_buffer)[i];
-    }
-
-    return result;
+    return {static_cast<uint8_t*>(transaction.rx_buffer), transaction.length / 8};
 }
 
 } // idf

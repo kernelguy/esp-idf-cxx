@@ -5,6 +5,7 @@
  */
 #include "gpio_intr_cxx.hpp"
 #include "driver/gpio.h"
+#include "esp_attr.h"
 
 namespace idf {
 
@@ -34,7 +35,7 @@ void GPIOInterruptService::Stop()
 }
 
 GPIOInterrupt::GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type, GPIOInterrupt::interrupt_callback_t cb, uintptr_t aArg)
-    : GPIOBase(num, mode, pull, strength)
+    : GPIOBase(num, mode, pull, strength, type)
 {
     set_type(type);
     set_callback(std::move(cb), aArg);
@@ -83,7 +84,7 @@ void GPIOInterrupt::disable() const
     GPIO_CHECK_THROW(gpio_intr_disable(gpio_num.get_value<gpio_num_t>()));
 }
 
-void GPIOInterrupt::driver_handler(void* class_ptr)
+void IRAM_ATTR GPIOInterrupt::driver_handler(void* class_ptr)
 {
     auto p = reinterpret_cast<GPIOInterrupt*>(class_ptr);
     if (p && p->mCallback) {

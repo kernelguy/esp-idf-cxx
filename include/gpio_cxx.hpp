@@ -259,11 +259,12 @@ protected:
      * @param mode GPIO mode of the GPIO to be configured
      * @param pull GPIO pull up/down configuration
      * @param strength GPIO output drive strength
+     * @param type GPIO interrupt type to be configured
      *
      * @throws GPIOException
      *              - if the underlying driver function fails
      */
-    GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull = GPIOPullMode::FLOATING(), GPIODriveStrength strength = GPIODriveStrength::DEFAULT());
+    GPIOBase(GPIONum num, GPIOModeType mode, GPIOPullMode pull = GPIOPullMode::FLOATING(), GPIODriveStrength strength = GPIODriveStrength::DEFAULT(), GPIOInterruptType type = GPIOInterruptType::DISABLE());
 
     /**
      * @brief Enable gpio pad hold function.

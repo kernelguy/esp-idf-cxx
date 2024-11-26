@@ -17,6 +17,7 @@
 
 #include "system_cxx.hpp"
 #include "spi_cxx.hpp"
+#include "driver/spi_master.h"
 
 namespace idf {
 
@@ -30,10 +31,7 @@ struct SPITransferException : public SPIException {
 class SPIDevice;
 class SPIDeviceHandle;
 
-union tx_data_t {
-    uint8_t bytes[4];
-    uint32_t value;
-};
+using SPITransactionResult = std::pair<uint8_t*, size_t>;
 
 /**
  * @brief Describes and encapsulates the transaction.
@@ -46,27 +44,22 @@ union tx_data_t {
 class SPITransactionDescriptor {
     friend class SPIDeviceHandle;
 public:
+    using trans_callback_t = std::function<void(void *)>;
+
     /**
      * @brief Create a SPITransactionDescriptor object, describing a full duplex transaction.
      *
-     * @param data_to_send The data sent to the SPI device. It can be dummy data if a read-only
-     *      transaction is intended. Its length determines the length of both write and read operation.
-     * @param handle to the internal driver handle
-     * @param pre_callback If non-empty, this callback will be called directly before the transaction.
-     * @param post_callback If non-empty, this callback will be called directly after the transaction.
-     * @param user_data optional data which will be accessible in the callbacks declared above
+     * @param apTxData The data sent to the SPI device. It can be dummy data if a read-only
+     *      transaction is intended.
+     * @param apRxData Buffer for data received from the SPI device.
+     * @param aDataSize Length of the apTxData and apRxData buffers
+     * @param apHandle to the internal driver handle
+     * @param apUserData optional data which will be accessible in the callbacks declared above
+     * @param pre_callback optional callback, will be called directly before the transaction.
+     * @param post_callback optional callback, will be called directly after the transaction.
      */
-    SPITransactionDescriptor(const std::vector<uint8_t> &data_to_send,
-            SPIDeviceHandle *handle,
-            std::function<void(void *)> pre_callback = nullptr,
-            std::function<void(void *)> post_callback = nullptr,
-            void* user_data = nullptr);
-
-    SPITransactionDescriptor(tx_data_t value_to_send, size_t count,
-                             SPIDeviceHandle *handle,
-                             std::function<void(void *)> pre_callback = nullptr,
-                             std::function<void(void *)> post_callback = nullptr,
-                             void* user_data_arg = nullptr);
+    SPITransactionDescriptor(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, SPIDeviceHandle *apHandle, void *apUserData = nullptr,
+                             trans_callback_t aPreCallback = nullptr, trans_callback_t aPostCallback = nullptr);
 
     /**
      * @brief De-initialize and delete all data of the transaction.
@@ -86,13 +79,13 @@ public:
     /**
      * @brief Synchronously (blocking) wait for the result and return the result data or throw an exception.
      *
-     * @return The data read from the SPI device. Its length is the length of \c data_to_send passed in the
-     *      constructor.
+     * @return Pointer to the \c apRxData buffer passed in the constructor. Its size is the \c aDataSize
+     *      passed in the constructor.
      * @throws SPIException in case of an error of the underlying driver or if the driver returns a wrong
      *      transaction descriptor for some reason. In the former case, the error code is the one from the
      *      underlying driver, in the latter case, the error code is ESP_ERR_INVALID_STATE.
      */
-    std::vector<uint8_t> get();
+    SPITransactionResult get();
 
     /**
      * @brief Wait until the asynchronous operation is done.
@@ -121,7 +114,8 @@ private:
     /**
      * Private descriptor data.
      */
-    void *private_transaction_desc;
+    spi_transaction_t transaction{};
+//    void *private_transaction_desc;
 
     /**
      * Private device data.
@@ -131,33 +125,27 @@ private:
     /**
      * @brief If non-empty, this callback will be called directly before the transaction.
      */
-    std::function<void(void *)> pre_callback;
+    std::function<void(void *)> pre_callback{};
 
     /**
      * @brief If non-empty, this callback will be called directly after the transaction.
      */
-    std::function<void(void *)> post_callback;
-
-    /**
-     * Buffer in spi_transaction_t is const, so we have to declare it here because we want to
-     * allocate and delete it.
-     */
-    uint8_t *tx_buffer;
+    std::function<void(void *)> post_callback{};
 
     /**
      * @brief User data which will be provided in the callbacks.
      */
-    void *user_data;
+    void *user_data = nullptr;
 
     /**
      * Tells if data has been received, i.e. the transaction has finished and the result can be acquired.
      */
-    bool received_data;
+    bool received_data = false;
 
     /**
      * Tells if the transaction has been initiated and is at least in-flight, if not finished.
      */
-    bool started;
+    bool started = false;
 };
 
 /**
@@ -205,7 +193,7 @@ public:
      *      underlying driver, in the latter case, the error code is ESP_ERR_INVALID_STATE.
      * @return The result of the asynchronous SPI transaction.
      */
-    std::vector<uint8_t> get();
+    SPITransactionResult get();
 
     /**
      * @brief Wait for a result up to timeout ms.
@@ -287,15 +275,13 @@ public:
      *
      * @return a future object which will become ready once the transfer has finished. See also \c SPIFuture.
      */
-    SPIFuture transfer(const std::vector<uint8_t> &data_to_send,
-            std::function<void(void *)> pre_callback = nullptr,
-            std::function<void(void *)> post_callback = nullptr,
-            void* user_data = nullptr);
+    SPIFuture transfer(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, std::function<void(void *)> pre_callback = nullptr,
+                                  std::function<void(void *)> post_callback = nullptr, void *user_data = nullptr);
 
-    SPIFuture transfer(tx_data_t aData, size_t aSize,
-                       std::function<void(void *)> pre_callback = nullptr,
-                       std::function<void(void *)> post_callback = nullptr,
-                       void* user_data = nullptr);
+    void prepare(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, std::function<void(void *)> pre_callback = nullptr,
+                       std::function<void(void *)> post_callback = nullptr, void *user_data = nullptr);
+
+    SPIFuture transfer_prepared();
 
     /**
      * @brief Queue a transfer to this device like \c transfer, but using begin/end iterators instead of a
@@ -315,12 +301,12 @@ public:
      *
      * @return a future object which will become ready once the transfer has finished. See also \c SPIFuture.
      */
-    template<typename IteratorT>
-    SPIFuture transfer(IteratorT begin,
-            IteratorT end,
-            std::function<void(void *)> pre_callback = nullptr,
-            std::function<void(void *)> post_callback = nullptr,
-            void* user_data = nullptr);
+//    template<typename IteratorT>
+//    SPIFuture transfer(IteratorT begin,
+//            IteratorT end,
+//            std::function<void(void *)> pre_callback = nullptr,
+//            std::function<void(void *)> post_callback = nullptr,
+//            void* user_data = nullptr);
 
 private:
     /**
@@ -396,17 +382,17 @@ private:
     SPINum spi_host;
 };
 
-template<typename IteratorT>
-SPIFuture SPIDevice::transfer(IteratorT begin,
-        IteratorT end,
-        std::function<void(void *)> pre_callback,
-        std::function<void(void *)> post_callback,
-        void* user_data)
-{
-    std::vector<uint8_t> write_data;
-    write_data.assign(begin, end);
-    return transfer(write_data, std::move(pre_callback), std::move(post_callback), user_data);
-}
+//template<typename IteratorT>
+//SPIFuture SPIDevice::transfer(IteratorT begin,
+//        IteratorT end,
+//        std::function<void(void *)> pre_callback,
+//        std::function<void(void *)> post_callback,
+//        void* user_data)
+//{
+//    std::vector<uint8_t> write_data;
+//    write_data.assign(begin, end);
+//    return transfer(write_data, std::move(pre_callback), std::move(post_callback), user_data);
+//}
 
 }
 

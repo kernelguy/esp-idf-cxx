@@ -43,17 +43,17 @@ public:
     SPIDeviceHandle(SPINum spi_host, CS cs, Frequency frequency, QueueSize q_size)
     {
         spi_device_interface_config_t dev_config = {};
-        dev_config.clock_speed_hz = frequency.get_value();
-        dev_config.spics_io_num = cs.get_value();
+        dev_config.clock_speed_hz = frequency.get_value<int>();
+        dev_config.spics_io_num = cs.get_value<int>();
         dev_config.pre_cb = pr_cb;
         dev_config.post_cb = post_cb;
-        dev_config.queue_size = q_size.get_size();
+        dev_config.queue_size = int(q_size.get_size());
         SPI_CHECK_THROW(spi_bus_add_device(spi_host.get_value<spi_host_device_t>(), &dev_config, &handle));
     }
 
     SPIDeviceHandle(const SPIDeviceHandle &other) = delete;
 
-    SPIDeviceHandle(SPIDeviceHandle &&other) noexcept : handle(std::move(other.handle))
+    SPIDeviceHandle(SPIDeviceHandle &&other) noexcept : handle(other.handle)
     {
         // Only to indicate programming errors where users use an instance after moving it.
         other.handle = nullptr;
@@ -73,7 +73,7 @@ public:
     SPIDeviceHandle &operator=(SPIDeviceHandle&& other) noexcept
     {
         if (this != &other) {
-            handle = std::move(other.handle);
+            handle = other.handle;
 
             // Only to indicate programming errors where users use an instance after moving it.
             other.handle = nullptr;
@@ -83,7 +83,7 @@ public:
 
     esp_err_t acquire_bus(TickType_t wait)
     {
-        return spi_device_acquire_bus(handle, portMAX_DELAY);
+        return spi_device_acquire_bus(handle, wait);
     }
 
     esp_err_t queue_trans(spi_transaction_t *trans_desc, TickType_t wait)
@@ -107,8 +107,8 @@ private:
      */
     static void pr_cb(spi_transaction_t *driver_transaction)
     {
-        SPITransactionDescriptor *transaction = static_cast<SPITransactionDescriptor*>(driver_transaction->user);
-        if (transaction->pre_callback) {
+        auto transaction = static_cast<SPITransactionDescriptor*>(driver_transaction->user);
+        if (transaction && transaction->pre_callback) {
             transaction->pre_callback(transaction->user_data);
         }
     }
@@ -118,13 +118,13 @@ private:
      */
     static void post_cb(spi_transaction_t *driver_transaction)
     {
-        SPITransactionDescriptor *transaction = static_cast<SPITransactionDescriptor*>(driver_transaction->user);
-        if (transaction->post_callback) {
+        auto transaction = static_cast<SPITransactionDescriptor*>(driver_transaction->user);
+        if (transaction && transaction->post_callback) {
             transaction->post_callback(transaction->user_data);
         }
     }
 
-    spi_device_handle_t handle;
+    spi_device_handle_t handle = nullptr;
 };
 
 }
