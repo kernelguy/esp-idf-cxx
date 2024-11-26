@@ -68,7 +68,7 @@ public:
     /**
      * @brief Callback footprint declaration for the GPIO interrupt.
      */
-    typedef std::function<void(const GPIOInterrupt&)> interrupt_callback_t;
+    typedef std::function<void(const GPIOInterrupt&, uintptr_t)> interrupt_callback_t;
 
     using GPIOBase::GPIOBase;
 
@@ -81,8 +81,9 @@ public:
      * @param strength The drive strength of the GPIO
      * @param type The interrupt type to set
      * @param cb The callback to be triggered on interrupt conditions
+     * @param aArg Optional argument for the interrupt callback
      */
-    GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type, interrupt_callback_t cb);
+    GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type, interrupt_callback_t cb, uintptr_t aArg = 0);
 
     ~GPIOInterrupt();
 
@@ -113,7 +114,7 @@ public:
      * 
      * @param func_cb The user callback
      */
-    void set_callback(interrupt_callback_t func_cb);
+    void set_callback(interrupt_callback_t func_cb, uintptr_t aArg = 0);
 
     /**
      * @brief Remove the registered callback
@@ -136,6 +137,7 @@ public:
 
 private:
     interrupt_callback_t mCallback;
+    uintptr_t mInterruptArg = 0;
 
     /**
      * @brief Function registered and called from the GPIO driver

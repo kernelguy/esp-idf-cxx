@@ -33,11 +33,11 @@ void GPIOInterruptService::Stop()
     mStarted = false;
 }
 
-GPIOInterrupt::GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type, GPIOInterrupt::interrupt_callback_t cb)
+GPIOInterrupt::GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type, GPIOInterrupt::interrupt_callback_t cb, uintptr_t aArg)
     : GPIOBase(num, mode, pull, strength)
 {
     set_type(type);
-    set_callback(std::move(cb));
+    set_callback(std::move(cb), aArg);
 }
 
 GPIOInterrupt::~GPIOInterrupt()
@@ -51,7 +51,7 @@ void GPIOInterrupt::set_type(const GPIOInterruptType type)
                                         type.get_value<gpio_int_type_t>()));
 }
 
-void GPIOInterrupt::set_callback(interrupt_callback_t aCb)
+void GPIOInterrupt::set_callback(interrupt_callback_t aCb, uintptr_t aArg)
 {
     if (!mCallback)
     {
@@ -61,6 +61,7 @@ void GPIOInterrupt::set_callback(interrupt_callback_t aCb)
                                         this));
     }
     mCallback = std::move(aCb);
+    mInterruptArg = aArg;
 }
 
 void GPIOInterrupt::remove_callback()
@@ -86,7 +87,7 @@ void GPIOInterrupt::driver_handler(void* class_ptr)
 {
     auto p = reinterpret_cast<GPIOInterrupt*>(class_ptr);
     if (p && p->mCallback) {
-        p->mCallback(*p);
+        p->mCallback(*p, p->mInterruptArg);
     }
 }
 
