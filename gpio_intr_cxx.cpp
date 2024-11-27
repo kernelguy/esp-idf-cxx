@@ -40,6 +40,11 @@ GPIOInterrupt::GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, 
     set_callback(std::move(cb), aArg);
 }
 
+GPIOInterrupt::GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type)
+    : GPIOBase(num, mode, pull, strength, type)
+{
+}
+
 GPIOInterrupt::~GPIOInterrupt()
 {
     remove_callback();

@@ -70,8 +70,6 @@ public:
      */
     typedef std::function<void(const GPIOInterrupt&, uintptr_t)> interrupt_callback_t;
 
-    using GPIOBase::GPIOBase;
-
     /**
      * @brief Constructor of GPIOInterrupt
      * 
@@ -84,6 +82,7 @@ public:
      * @param aArg Optional argument for the interrupt callback
      */
     GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type, interrupt_callback_t cb, uintptr_t aArg = 0);
+    GPIOInterrupt(GPIONum num, GPIOModeType mode, GPIOPullMode pull, GPIODriveStrength strength, GPIOInterruptType type);
 
     ~GPIOInterrupt();
 
