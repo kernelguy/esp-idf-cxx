@@ -29,7 +29,8 @@ SPIMaster::SPIMaster(SPINum host,
         QSPIWP qspiwp,
         QSPIHD qspihd,
         SPI_DMAConfig dma_config,
-        SPITransferSize transfer_size)
+        SPITransferSize transfer_size,
+        esp_intr_cpu_affinity_t cpu_affinity)
     : spi_host(host)
 {
     spi_bus_config_t bus_config = {};
@@ -39,6 +40,7 @@ SPIMaster::SPIMaster(SPINum host,
     bus_config.quadwp_io_num = int(qspiwp.get_value());
     bus_config.quadhd_io_num = int(qspihd.get_value());
     bus_config.max_transfer_sz = int(transfer_size.get_value());
+    bus_config.isr_cpu_id = cpu_affinity;
 
     SPI_CHECK_THROW(spi_bus_initialize(spi_host.get_value<spi_host_device_t>(), &bus_config, dma_config.get_value()));
 }

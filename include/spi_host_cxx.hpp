@@ -358,7 +358,8 @@ public:
             QSPIWP qspiwp = QSPIWP(),
             QSPIHD qspihd = QSPIHD(),
             SPI_DMAConfig dma_config = SPI_DMAConfig::AUTO(),
-            SPITransferSize max_transfer_size = SPITransferSize::default_size());
+            SPITransferSize max_transfer_size = SPITransferSize::default_size(),
+            esp_intr_cpu_affinity_t cpu_affinity = ESP_INTR_CPU_AFFINITY_AUTO);
 
     SPIMaster(const SPIMaster&) = delete;
     SPIMaster operator=(const SPIMaster&) = delete;
