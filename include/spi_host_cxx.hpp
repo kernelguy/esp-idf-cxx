@@ -77,6 +77,7 @@ public:
     void start();
 
     void StartPolling();
+    void EndPolling(std::chrono::milliseconds aTimeout);
     void Acquire();
     void Release();
 
@@ -288,6 +289,7 @@ public:
     SPIFuture transfer_prepared();
 
     void StartPolling();
+    void EndPolling(std::chrono::milliseconds aTimeout);
     void Acquire();
     void Release();
 

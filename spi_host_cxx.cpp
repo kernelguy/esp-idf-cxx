@@ -148,6 +148,11 @@ void SPIDevice::StartPolling()
     current_transaction->StartPolling();
 }
 
+void SPIDevice::EndPolling(std::chrono::milliseconds aTimeout)
+{
+    current_transaction->EndPolling(aTimeout);
+}
+
 void SPIDevice::Acquire()
 {
     current_transaction->Acquire();
@@ -203,6 +208,13 @@ void SPITransactionDescriptor::StartPolling()
     SPI_CHECK_THROW(device_handle->start_polling(&transaction, portMAX_DELAY));
     received_data = false;
     started = true;
+}
+
+void SPITransactionDescriptor::EndPolling(std::chrono::milliseconds aTimeout)
+{
+    SPI_CHECK_THROW(device_handle->end_polling(aTimeout.count() / portTICK_PERIOD_MS));
+    received_data = true;
+    started = false;
 }
 
 void SPITransactionDescriptor::Acquire()

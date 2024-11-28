@@ -96,6 +96,11 @@ public:
         return spi_device_polling_start(handle, trans_desc, wait);
     }
 
+    esp_err_t end_polling(TickType_t wait)
+    {
+        return spi_device_polling_end(handle, wait);
+    }
+
     esp_err_t get_trans_result(spi_transaction_t **trans_desc, TickType_t ticks_to_wait)
     {
         return spi_device_get_trans_result(handle, trans_desc, ticks_to_wait);
