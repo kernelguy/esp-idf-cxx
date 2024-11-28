@@ -200,7 +200,7 @@ void SPITransactionDescriptor::start()
 
 void SPITransactionDescriptor::StartPolling()
 {
-    SPI_CHECK_THROW(device_handle->start_polling(&transaction, 0));
+    SPI_CHECK_THROW(device_handle->start_polling(&transaction, portMAX_DELAY));
     received_data = false;
     started = true;
 }
