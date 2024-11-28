@@ -145,6 +145,11 @@ SPIFuture SPIDevice::transfer_prepared()
     return SPIFuture(current_transaction);
 }
 
+void SPIDevice::StartTransfer()
+{
+    current_transaction->StartTransfer();
+}
+
 void SPIDevice::StartPolling()
 {
     current_transaction->StartPolling();
@@ -200,6 +205,13 @@ SPITransactionDescriptor::~SPITransactionDescriptor()
 void SPITransactionDescriptor::start()
 {
     SPI_CHECK_THROW(device_handle->acquire_bus(portMAX_DELAY));
+    SPI_CHECK_THROW(device_handle->queue_trans(&transaction, 0));
+    received_data = false;
+    started = true;
+}
+
+void SPITransactionDescriptor::StartTransfer()
+{
     SPI_CHECK_THROW(device_handle->queue_trans(&transaction, 0));
     received_data = false;
     started = true;
