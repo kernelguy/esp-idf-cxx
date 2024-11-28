@@ -148,6 +148,16 @@ void SPIDevice::StartPolling()
     current_transaction->StartPolling();
 }
 
+void SPIDevice::Acquire()
+{
+    current_transaction->Acquire();
+}
+void SPIDevice::Release()
+{
+    current_transaction->Release();
+}
+
+
 SPITransactionDescriptor::SPITransactionDescriptor(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, SPIDeviceHandle *apHandle, void *apUserData,
                                                    trans_callback_t aPreCallback, trans_callback_t aPostCallback)
         : device_handle(apHandle),
