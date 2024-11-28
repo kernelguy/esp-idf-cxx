@@ -287,6 +287,8 @@ public:
 
     SPIFuture transfer_prepared();
 
+    void StartPolling();
+
     /**
      * @brief Queue a transfer to this device like \c transfer, but using begin/end iterators instead of a
      *      data vector.

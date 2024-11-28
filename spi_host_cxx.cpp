@@ -143,6 +143,10 @@ SPIFuture SPIDevice::transfer_prepared()
     return SPIFuture(current_transaction);
 }
 
+void SPIDevice::StartPolling()
+{
+    current_transaction->StartPolling();
+}
 
 SPITransactionDescriptor::SPITransactionDescriptor(const uint8_t *apTxData, uint8_t *apRxData, size_t aDataSize, SPIDeviceHandle *apHandle, void *apUserData,
                                                    trans_callback_t aPreCallback, trans_callback_t aPostCallback)
@@ -151,10 +155,7 @@ SPITransactionDescriptor::SPITransactionDescriptor(const uint8_t *apTxData, uint
           post_callback(std::move(aPostCallback)),
           user_data(apUserData)
 {
-    if (apTxData == nullptr) {
-        throw SPITransferException(ESP_ERR_INVALID_ARG);
-    }
-    if (apRxData == nullptr) {
+    if (apRxData == nullptr && apTxData == nullptr) {
         throw SPITransferException(ESP_ERR_INVALID_ARG);
     }
     if (aDataSize == 0) {
