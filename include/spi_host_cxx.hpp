@@ -76,6 +76,10 @@ public:
      */
     void start();
 
+    void StartPolling();
+    void Acquire();
+    void Release();
+
     /**
      * @brief Synchronously (blocking) wait for the result and return the result data or throw an exception.
      *

@@ -187,6 +187,24 @@ void SPITransactionDescriptor::start()
     started = true;
 }
 
+void SPITransactionDescriptor::StartPolling()
+{
+    SPI_CHECK_THROW(device_handle->start_polling(&transaction, 0));
+    received_data = false;
+    started = true;
+}
+
+void SPITransactionDescriptor::Acquire()
+{
+    SPI_CHECK_THROW(device_handle->acquire_bus(portMAX_DELAY));
+}
+
+void SPITransactionDescriptor::Release()
+{
+    device_handle->release_bus();
+}
+
+
 void SPITransactionDescriptor::wait()
 {
     while (!wait_for(chrono::milliseconds(portMAX_DELAY))) { }

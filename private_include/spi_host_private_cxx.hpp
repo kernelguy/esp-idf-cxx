@@ -91,6 +91,11 @@ public:
         return spi_device_queue_trans(handle, trans_desc, wait);
     }
 
+    esp_err_t start_polling(spi_transaction_t *trans_desc, TickType_t wait)
+    {
+        return spi_device_polling_start(handle, trans_desc, wait);
+    }
+
     esp_err_t get_trans_result(spi_transaction_t **trans_desc, TickType_t ticks_to_wait)
     {
         return spi_device_get_trans_result(handle, trans_desc, ticks_to_wait);
