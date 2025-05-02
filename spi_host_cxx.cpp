@@ -30,7 +30,8 @@ SPIMaster::SPIMaster(SPINum host,
         QSPIHD qspihd,
         SPI_DMAConfig dma_config,
         SPITransferSize transfer_size,
-        esp_intr_cpu_affinity_t cpu_affinity)
+        esp_intr_cpu_affinity_t cpu_affinity,
+        InterruptFlags interrupt_flags)
     : spi_host(host)
 {
     spi_bus_config_t bus_config = {};
@@ -41,6 +42,7 @@ SPIMaster::SPIMaster(SPINum host,
     bus_config.quadhd_io_num = int(qspihd.get_value());
     bus_config.max_transfer_sz = int(transfer_size.get_value());
     bus_config.isr_cpu_id = cpu_affinity;
+    bus_config.intr_flags = int(interrupt_flags.GetValue());
 
     SPI_CHECK_THROW(spi_bus_initialize(spi_host.get_value<spi_host_device_t>(), &bus_config, dma_config.get_value()));
 }

@@ -12,31 +12,9 @@
 #include <functional>
 
 #include "gpio_cxx.hpp"
+#include "InterruptFlags.h"
 
 namespace idf {
-
-class InterruptFlags
-{
-public:
-    constexpr InterruptFlags() = default;
-
-    constexpr InterruptFlags& Level1()      { mFlags |= (1<<1); return *this; }
-    constexpr InterruptFlags& Level2()      { mFlags |= (1<<2); return *this; }
-    constexpr InterruptFlags& Level3()      { mFlags |= (1<<3); return *this; }
-    constexpr InterruptFlags& Level4()      { mFlags |= (1<<4); return *this; }
-    constexpr InterruptFlags& Level5()      { mFlags |= (1<<5); return *this; }
-    constexpr InterruptFlags& Level6()      { mFlags |= (1<<6); return *this; }
-    constexpr InterruptFlags& NonMaskable() { mFlags |= (1<<7); return *this; }
-    constexpr InterruptFlags& Shared()      { mFlags |= (1<<8); return *this; }
-    constexpr InterruptFlags& Edge()        { mFlags |= (1<<9); return *this; }
-    constexpr InterruptFlags& InternalRAM() { mFlags |= (1<<10); return *this; }
-    constexpr InterruptFlags& Disabled()    { mFlags |= (1<<11); return *this; }
-
-    [[nodiscard]] constexpr uint32_t GetValue() const { return mFlags; }
-protected:
-    uint32_t mFlags = 0;
-};
-
 
 class GPIOInterruptService
 {

@@ -17,6 +17,7 @@
 
 #include "system_cxx.hpp"
 #include "spi_cxx.hpp"
+#include "InterruptFlags.h"
 #include "driver/spi_master.h"
 
 namespace idf {
@@ -361,7 +362,8 @@ public:
             QSPIHD qspihd = QSPIHD(),
             SPI_DMAConfig dma_config = SPI_DMAConfig::AUTO(),
             SPITransferSize max_transfer_size = SPITransferSize::default_size(),
-            esp_intr_cpu_affinity_t cpu_affinity = ESP_INTR_CPU_AFFINITY_AUTO);
+            esp_intr_cpu_affinity_t cpu_affinity = ESP_INTR_CPU_AFFINITY_AUTO,
+            InterruptFlags interrupt_flags = InterruptFlags().Level1());
 
     SPIMaster(const SPIMaster&) = delete;
     SPIMaster operator=(const SPIMaster&) = delete;
